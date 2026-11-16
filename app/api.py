@@ -7,6 +7,8 @@ from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from . import pipeline, schemas
+from . import certification as cert_service
+from . import diagnostics as diag_service
 from .config import settings
 from .db import Base, engine, get_db
 from .ingest import ingest_batch, ingest_progress, parse_local_us_iso
@@ -14,13 +16,22 @@ from .models import (
     AuditLog,
     CalibrationModel,
     CalibrationSourceRecord,
+    CertifiedParameter,
+    CertificationRecord,
+    DiagnosticEvidence,
+    DiagnosticRun,
     Event,
+    EventConfirmation,
     EventExclusion,
     EventObservation,
+    EventParameterImpact,
     EventRevisionLink,
+    HypothesisRecord,
+    LocalizationReviewDraft,
     Observation,
     ObservationConflict,
     ProcessingRun,
+    PropagationRegion,
     SoundClass,
     Station,
     StationBoot,
@@ -1090,3 +1101,579 @@ def stats(db: Session = Depends(get_db)):
         events=events,
         latest_run=_run_out(latest) if latest else None,
     )
+
+
+# --------------------------------------------------------------------------- #
+# Hypothesis diagnostics: evidence library, hypothesis register
+# --------------------------------------------------------------------------- #
+@router.post(
+    "/propagation-regions",
+    response_model=schemas.PropagationRegionOut,
+    status_code=201,
+    tags=["diagnostics"],
+    summary="Define an applicability region for a regional propagation model",
+)
+def create_propagation_region(body: schemas.PropagationRegionCreate, db: Session = Depends(get_db)):
+    if db.get(PropagationRegion, body.id):
+        raise HTTPException(409, "propagation region already exists")
+    row = PropagationRegion(
+        id=body.id,
+        name=body.name,
+        x_min=body.x_min,
+        x_max=body.x_max,
+        y_min=body.y_min,
+        y_max=body.y_max,
+        baseline_speed_mps=body.baseline_speed_mps,
+        active=True,
+        notes=body.notes,
+        created_at_us=now_us(),
+    )
+    db.add(row)
+    db.commit()
+    return _region_out(row)
+
+
+def _region_out(row: PropagationRegion) -> schemas.PropagationRegionOut:
+    return schemas.PropagationRegionOut(
+        id=row.id,
+        name=row.name,
+        x_min=row.x_min,
+        x_max=row.x_max,
+        y_min=row.y_min,
+        y_max=row.y_max,
+        baseline_speed_mps=row.baseline_speed_mps,
+        active=row.active,
+        notes=row.notes,
+        created_at=iso(row.created_at_us),
+    )
+
+
+@router.get(
+    "/propagation-regions",
+    response_model=list[schemas.PropagationRegionOut],
+    tags=["diagnostics"],
+    summary="List regional propagation model applicability regions",
+)
+def list_propagation_regions(db: Session = Depends(get_db)):
+    rows = db.execute(select(PropagationRegion).order_by(PropagationRegion.id)).scalars()
+    return [_region_out(r) for r in rows]
+
+
+@router.post(
+    "/diagnostic-runs",
+    response_model=schemas.DiagnosticRunOut,
+    status_code=201,
+    tags=["diagnostics"],
+    summary="Run a calibration fault-attribution diagnosis with hold-out validation",
+)
+def create_diagnostic_run(body: schemas.DiagnosticRunCreate, db: Session = Depends(get_db)):
+    try:
+        run = diag_service.create_diagnostic_run(
+            db,
+            scope_type=body.scope_type,
+            organization=body.organization,
+            cfg=settings,
+            station_id=body.station_id,
+            region_id=body.region_id,
+            created_by=body.created_by,
+        )
+        db.commit()
+    except KeyError:
+        db.rollback()
+        raise HTTPException(404, "station or region not found")
+    try:
+        diag_service.run_diagnosis(db, run, settings)
+        db.commit()
+    except Exception as exc:  # pragma: no cover - defensive persistence of the failure
+        db.rollback()
+        run = db.get(DiagnosticRun, run.id)
+        if run is not None:
+            run.status = "failed"
+            run.error = f"{type(exc).__name__}: {exc}"
+            db.commit()
+        raise HTTPException(500, f"diagnostic run failed: {exc}")
+    return _diagnostic_run_out(db.get(DiagnosticRun, run.id))
+
+
+def _diagnostic_run_out(run: DiagnosticRun) -> schemas.DiagnosticRunOut:
+    return schemas.DiagnosticRunOut(
+        id=run.id,
+        batch_id=run.batch_id,
+        scope_type=run.scope_type,
+        station_id=run.station_id,
+        region_id=run.region_id,
+        organization=run.organization,
+        cutoff=iso(run.cutoff_us),
+        baseline_speed_mps=run.baseline_speed_mps,
+        boot_ids=run.boot_ids or [],
+        station_ids=run.station_ids or [],
+        fit_anchor_count=run.fit_anchor_count,
+        holdout_anchor_count=run.holdout_anchor_count,
+        excluded_anchor_ids=run.excluded_anchor_ids or [],
+        status=run.status,
+        error=run.error,
+        created_by=run.created_by,
+        created_at=iso(run.created_at_us),
+        finished_at=iso(run.finished_at_us),
+        diagnosis=run.diagnosis_json,
+    )
+
+
+@router.get(
+    "/diagnostic-runs",
+    response_model=list[schemas.DiagnosticRunOut],
+    tags=["diagnostics"],
+    summary="List calibration hypothesis diagnostic runs",
+)
+def list_diagnostic_runs(
+    scope_type: str | None = None,
+    station_id: str | None = None,
+    limit: int = Query(50, ge=1, le=500),
+    db: Session = Depends(get_db),
+):
+    stmt = select(DiagnosticRun).order_by(DiagnosticRun.id.desc()).limit(limit)
+    if scope_type:
+        stmt = stmt.where(DiagnosticRun.scope_type == scope_type)
+    if station_id:
+        stmt = stmt.where(DiagnosticRun.station_id == station_id)
+    return [_diagnostic_run_out(r) for r in db.execute(stmt).scalars()]
+
+
+@router.get(
+    "/diagnostic-runs/{run_id}",
+    response_model=schemas.DiagnosticRunOut,
+    tags=["diagnostics"],
+    summary="Fetch one diagnostic run with its full diagnosis",
+)
+def get_diagnostic_run(run_id: int, db: Session = Depends(get_db)):
+    run = db.get(DiagnosticRun, run_id)
+    if not run:
+        raise HTTPException(404, "diagnostic run not found")
+    return _diagnostic_run_out(run)
+
+
+@router.get(
+    "/diagnostic-runs/{run_id}/evidence",
+    response_model=list[schemas.DiagnosticEvidenceOut],
+    tags=["diagnostics"],
+    summary="Inspect the frozen calibration evidence library of a diagnostic run",
+)
+def diagnostic_run_evidence(
+    run_id: int,
+    partition: str | None = Query(None, pattern="^(fit|holdout)$"),
+    excluded: bool | None = None,
+    db: Session = Depends(get_db),
+):
+    if not db.get(DiagnosticRun, run_id):
+        raise HTTPException(404, "diagnostic run not found")
+    stmt = select(DiagnosticEvidence).where(DiagnosticEvidence.diagnostic_run_id == run_id)
+    if partition:
+        stmt = stmt.where(DiagnosticEvidence.partition == partition)
+    if excluded is not None:
+        stmt = stmt.where(DiagnosticEvidence.excluded.is_(excluded))
+    rows = db.execute(stmt.order_by(DiagnosticEvidence.id)).scalars()
+    return [_evidence_out(r) for r in rows]
+
+
+def _evidence_out(row: DiagnosticEvidence) -> schemas.DiagnosticEvidenceOut:
+    return schemas.DiagnosticEvidenceOut(
+        id=row.id,
+        diagnostic_run_id=row.diagnostic_run_id,
+        station_id=row.station_id,
+        boot_id=row.boot_id,
+        observation_id=row.observation_id,
+        calibration_source_id=row.calibration_source_id,
+        source_x=row.source_x,
+        source_y=row.source_y,
+        station_x=row.station_x,
+        station_y=row.station_y,
+        emission=iso(row.emission_us),
+        distance_m=row.distance_m,
+        direction_rad=row.direction_rad,
+        propagation_ms=row.propagation_us / 1000.0,
+        reference_arrival=iso(int(round(row.reference_arrival_us))),
+        local_capture=parse_local_us_iso(row.local_capture_us),
+        detrended_residual_ms=row.detrended_residual_us / 1000.0,
+        mapping_source=row.mapping_source,
+        partition=row.partition,
+        excluded=row.excluded,
+        exclusion_reason=row.exclusion_reason,
+    )
+
+
+def _hypothesis_out(row: HypothesisRecord) -> schemas.HypothesisOut:
+    return schemas.HypothesisOut(
+        id=row.id,
+        code=row.code,
+        diagnostic_run_id=row.diagnostic_run_id,
+        organization=row.organization,
+        hypothesis_type=row.hypothesis_type,
+        station_id=row.station_id,
+        boot_id=row.boot_id,
+        region_id=row.region_id,
+        status=row.status,
+        preference_rank=row.preference_rank,
+        preference_reason=row.preference_reason,
+        identifiable=row.identifiable,
+        identifiability=row.identifiability_json or {},
+        params=row.params_json or {},
+        fit_metrics=row.fit_metrics_json or {},
+        holdout_metrics=row.holdout_metrics_json or {},
+        direction_analysis=row.direction_analysis_json,
+        calibration_version_hash=row.calibration_version_hash,
+        created_at=iso(row.created_at_us),
+    )
+
+
+@router.get(
+    "/hypotheses",
+    response_model=list[schemas.HypothesisOut],
+    tags=["diagnostics"],
+    summary="List the hypothesis register (clock, coordinate, speed)",
+)
+def list_hypotheses(
+    diagnostic_run_id: int | None = None,
+    station_id: str | None = None,
+    boot_id: str | None = None,
+    hypothesis_type: str | None = None,
+    organization: str | None = None,
+    identifiable: bool | None = None,
+    limit: int = Query(200, ge=1, le=2000),
+    db: Session = Depends(get_db),
+):
+    stmt = select(HypothesisRecord).order_by(
+        HypothesisRecord.diagnostic_run_id.desc(),
+        HypothesisRecord.preference_rank.is_(None),
+        HypothesisRecord.preference_rank,
+        HypothesisRecord.id,
+    ).limit(limit)
+    if diagnostic_run_id is not None:
+        stmt = stmt.where(HypothesisRecord.diagnostic_run_id == diagnostic_run_id)
+    if station_id:
+        stmt = stmt.where(HypothesisRecord.station_id == station_id)
+    if boot_id:
+        stmt = stmt.where(HypothesisRecord.boot_id == boot_id)
+    if hypothesis_type:
+        stmt = stmt.where(HypothesisRecord.hypothesis_type == hypothesis_type)
+    if organization:
+        stmt = stmt.where(HypothesisRecord.organization == organization)
+    if identifiable is not None:
+        stmt = stmt.where(HypothesisRecord.identifiable.is_(identifiable))
+    return [_hypothesis_out(r) for r in db.execute(stmt).scalars()]
+
+
+@router.get(
+    "/hypotheses/{hypothesis_id}",
+    response_model=schemas.HypothesisOut,
+    tags=["diagnostics"],
+    summary="Fetch one hypothesis with fit and hold-out metrics",
+)
+def get_hypothesis(hypothesis_id: int, db: Session = Depends(get_db)):
+    row = db.get(HypothesisRecord, hypothesis_id)
+    if not row:
+        raise HTTPException(404, "hypothesis not found")
+    return _hypothesis_out(row)
+
+
+# --------------------------------------------------------------------------- #
+# Certification book
+# --------------------------------------------------------------------------- #
+@router.post(
+    "/hypotheses/{hypothesis_id}/certify",
+    response_model=schemas.CertificationOut,
+    tags=["certification"],
+    summary="Approve or reject a hypothesis through the certification gates",
+)
+def certify_hypothesis(
+    hypothesis_id: int,
+    body: schemas.CertificationDecisionRequest,
+    db: Session = Depends(get_db),
+):
+    if not db.get(HypothesisRecord, hypothesis_id):
+        raise HTTPException(404, "hypothesis not found")
+    try:
+        record = cert_service.decide_certification(
+            db, hypothesis_id, decided_by=body.decided_by, cfg=settings
+        )
+        db.commit()
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(409, str(exc))
+    return _certification_out(db.get(CertificationRecord, record.id))
+
+
+def _certification_out(row: CertificationRecord) -> schemas.CertificationOut:
+    return schemas.CertificationOut(
+        id=row.id,
+        cert_code=row.cert_code,
+        hypothesis_id=row.hypothesis_id,
+        diagnostic_run_id=row.diagnostic_run_id,
+        parameter_type=row.parameter_type,
+        station_id=row.station_id,
+        boot_id=row.boot_id,
+        region_id=row.region_id,
+        status=row.status,
+        decision_reason=row.decision_reason,
+        gates=(row.gate_json or {}).get("gates", []),
+        holdout_comparison=row.holdout_comparison_json or {},
+        exclusion_comparison=row.exclusion_comparison_json,
+        identifiability=row.identifiability_json or {},
+        params=row.params_json or {},
+        version=row.version,
+        supersedes_certification_id=row.supersedes_certification_id,
+        decided_by=row.decided_by,
+        created_at=iso(row.created_at_us),
+        decided_at=iso(row.decided_at_us),
+    )
+
+
+@router.get(
+    "/certifications",
+    response_model=list[schemas.CertificationOut],
+    tags=["certification"],
+    summary="List certification book entries (approved and rejected)",
+)
+def list_certifications(
+    status: str | None = Query(None, pattern="^(approved|rejected|pending)$"),
+    parameter_type: str | None = None,
+    station_id: str | None = None,
+    region_id: str | None = None,
+    limit: int = Query(200, ge=1, le=1000),
+    db: Session = Depends(get_db),
+):
+    stmt = select(CertificationRecord).order_by(CertificationRecord.id.desc()).limit(limit)
+    if status:
+        stmt = stmt.where(CertificationRecord.status == status)
+    if parameter_type:
+        stmt = stmt.where(CertificationRecord.parameter_type == parameter_type)
+    if station_id:
+        stmt = stmt.where(CertificationRecord.station_id == station_id)
+    if region_id:
+        stmt = stmt.where(CertificationRecord.region_id == region_id)
+    return [_certification_out(r) for r in db.execute(stmt).scalars()]
+
+
+@router.get(
+    "/certifications/{certification_id}",
+    response_model=schemas.CertificationOut,
+    tags=["certification"],
+    summary="Fetch one certification record with every gate result",
+)
+def get_certification(certification_id: int, db: Session = Depends(get_db)):
+    row = db.get(CertificationRecord, certification_id)
+    if not row:
+        raise HTTPException(404, "certification not found")
+    return _certification_out(row)
+
+
+@router.get(
+    "/certifications/{certification_id}/impacts",
+    response_model=list[schemas.EventParameterImpactOut],
+    tags=["certification"],
+    summary="List the affected event versions of one certification",
+)
+def certification_impacts(certification_id: int, db: Session = Depends(get_db)):
+    if not db.get(CertificationRecord, certification_id):
+        raise HTTPException(404, "certification not found")
+    rows = db.execute(
+        select(EventParameterImpact)
+        .where(EventParameterImpact.certification_id == certification_id)
+        .order_by(EventParameterImpact.id)
+    ).scalars()
+    return [_impact_out(r) for r in rows]
+
+
+def _impact_out(row: EventParameterImpact) -> schemas.EventParameterImpactOut:
+    return schemas.EventParameterImpactOut(
+        id=row.id,
+        certification_id=row.certification_id,
+        event_id=row.event_id,
+        event_revision=row.event_revision,
+        event_status_at_impact=row.event_status_at_impact,
+        human_confirmed=row.human_confirmed,
+        action=row.action,
+        reason=row.reason,
+        review_draft_id=row.review_draft_id,
+        created_at=iso(row.created_at_us),
+    )
+
+
+@router.get(
+    "/certified-parameters",
+    response_model=list[schemas.CertifiedParameterOut],
+    tags=["certification"],
+    summary="Parameters handed to the localisation dataset (active certifications)",
+)
+def list_certified_parameters(
+    active_only: bool = True,
+    parameter_type: str | None = None,
+    station_id: str | None = None,
+    db: Session = Depends(get_db),
+):
+    stmt = select(CertifiedParameter).order_by(CertifiedParameter.id.desc())
+    if active_only:
+        stmt = stmt.where(CertifiedParameter.active.is_(True))
+    if parameter_type:
+        stmt = stmt.where(CertifiedParameter.parameter_type == parameter_type)
+    if station_id:
+        stmt = stmt.where(CertifiedParameter.station_id == station_id)
+    rows = db.execute(stmt.limit(500)).scalars()
+    return [_certified_out(r) for r in rows]
+
+
+def _certified_out(row: CertifiedParameter) -> schemas.CertifiedParameterOut:
+    return schemas.CertifiedParameterOut(
+        id=row.id,
+        certification_id=row.certification_id,
+        parameter_type=row.parameter_type,
+        station_id=row.station_id,
+        boot_id=row.boot_id,
+        region_id=row.region_id,
+        params=row.params_json or {},
+        identifiability=row.identifiability_json or {},
+        affected_event_versions=row.affected_event_versions or [],
+        handoff=row.handoff_json or {},
+        active=row.active,
+        valid_from=iso(row.valid_from_us),
+        valid_to=iso(row.valid_to_us),
+        version=row.version,
+        created_at=iso(row.created_at_us),
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Human confirmations and review drafts
+# --------------------------------------------------------------------------- #
+@router.post(
+    "/events/{event_id}/confirmations",
+    response_model=schemas.EventConfirmationOut,
+    status_code=201,
+    tags=["certification"],
+    summary="Record a human investigator's confirmation of an event",
+)
+def confirm_event(
+    event_id: int, body: schemas.EventConfirmationCreate, db: Session = Depends(get_db)
+):
+    if not db.get(Event, event_id):
+        raise HTTPException(404, "event not found")
+    try:
+        row = cert_service.confirm_event(
+            db, event_id, confirmed_by=body.confirmed_by, note=body.note
+        )
+        db.commit()
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(409, str(exc))
+    return schemas.EventConfirmationOut(
+        id=row.id,
+        event_id=row.event_id,
+        confirmed_by=row.confirmed_by,
+        note=row.note,
+        created_at=iso(row.created_at_us),
+    )
+
+
+@router.get(
+    "/events/{event_id}/confirmations",
+    response_model=list[schemas.EventConfirmationOut],
+    tags=["certification"],
+    summary="List human confirmations recorded for an event",
+)
+def list_event_confirmations(event_id: int, db: Session = Depends(get_db)):
+    if not db.get(Event, event_id):
+        raise HTTPException(404, "event not found")
+    rows = db.execute(
+        select(EventConfirmation)
+        .where(EventConfirmation.event_id == event_id)
+        .order_by(EventConfirmation.id)
+    ).scalars()
+    return [
+        schemas.EventConfirmationOut(
+            id=r.id,
+            event_id=r.event_id,
+            confirmed_by=r.confirmed_by,
+            note=r.note,
+            created_at=iso(r.created_at_us),
+        )
+        for r in rows
+    ]
+
+
+def _draft_out(row: LocalizationReviewDraft) -> schemas.ReviewDraftOut:
+    return schemas.ReviewDraftOut(
+        id=row.id,
+        certification_id=row.certification_id,
+        source_event_id=row.source_event_id,
+        status=row.status,
+        params_snapshot=row.params_snapshot_json or {},
+        before=row.before_json or {},
+        after=row.after_json or {},
+        delta=row.delta_json or {},
+        reason=row.reason,
+        resolved=row.resolved,
+        resolution_note=row.resolution_note,
+        created_at=iso(row.created_at_us),
+        updated_at=iso(row.updated_at_us),
+    )
+
+
+@router.get(
+    "/review-drafts",
+    response_model=list[schemas.ReviewDraftOut],
+    tags=["certification"],
+    summary="List pending re-localisation drafts (never auto-applied to confirmed events)",
+)
+def list_review_drafts(
+    status: str | None = None,
+    resolved: bool | None = None,
+    limit: int = Query(200, ge=1, le=1000),
+    db: Session = Depends(get_db),
+):
+    stmt = select(LocalizationReviewDraft).order_by(LocalizationReviewDraft.id.desc()).limit(limit)
+    if status:
+        stmt = stmt.where(LocalizationReviewDraft.status == status)
+    if resolved is not None:
+        stmt = stmt.where(LocalizationReviewDraft.resolved.is_(resolved))
+    return [_draft_out(r) for r in db.execute(stmt).scalars()]
+
+
+@router.get(
+    "/review-drafts/{draft_id}",
+    response_model=schemas.ReviewDraftOut,
+    tags=["certification"],
+    summary="Fetch one re-localisation review draft",
+)
+def get_review_draft(draft_id: int, db: Session = Depends(get_db)):
+    row = db.get(LocalizationReviewDraft, draft_id)
+    if not row:
+        raise HTTPException(404, "review draft not found")
+    return _draft_out(row)
+
+
+@router.post(
+    "/review-drafts/{draft_id}/resolve",
+    response_model=schemas.ReviewDraftOut,
+    tags=["certification"],
+    summary="Accept or reject a review draft; an explicit human action is required",
+)
+def resolve_review_draft(
+    draft_id: int, body: schemas.ReviewDraftResolveRequest, db: Session = Depends(get_db)
+):
+    if not db.get(LocalizationReviewDraft, draft_id):
+        raise HTTPException(404, "review draft not found")
+    try:
+        row = cert_service.resolve_review_draft(
+            db,
+            draft_id,
+            resolution=body.resolution,
+            note=body.note,
+            actor=body.resolved_by,
+        )
+        db.commit()
+    except KeyError:
+        db.rollback()
+        raise HTTPException(404, "review draft not found")
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(409, str(exc))
+    return _draft_out(row)

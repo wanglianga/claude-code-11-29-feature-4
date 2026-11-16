@@ -3,6 +3,7 @@
   "title": "Retransmitted batches: identical replay and a content conflict",
   "description": "After the normal uploads, station S1 re-sends its first batch byte-for-byte (must be counted as a duplicate and change nothing), then re-sends the record with source_seq 7 carrying a different uncertainty under the same sequence number (must land in the conflict table and leave the original untouched). Events and counts must be identical with and without the retransmission.",
   "propagation_speed_mps": 343.0,
+  "baseline_service_speed_mps": 343.0,
   "area": {
     "x_min": -200.0,
     "x_max": 2000.0,
@@ -14,6 +15,12 @@
       "id": "S1",
       "x": 150.0,
       "y": 150.0,
+      "registered_x": 150.0,
+      "registered_y": 150.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
       "hearing_radius_m": 1700.0,
       "late": false,
       "boots": [
@@ -24,7 +31,10 @@
           "drift_ppm": 35.0,
           "slope": 1.000035,
           "intercept_us": -1793515611378000.0,
-          "reboot_reason": null
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
         }
       ]
     },
@@ -32,6 +42,12 @@
       "id": "S2",
       "x": 1750.0,
       "y": 200.0,
+      "registered_x": 1750.0,
+      "registered_y": 200.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
       "hearing_radius_m": 1700.0,
       "late": false,
       "boots": [
@@ -42,7 +58,10 @@
           "drift_ppm": 35.0,
           "slope": 1.000035,
           "intercept_us": -1793515611378000.0,
-          "reboot_reason": null
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
         }
       ]
     },
@@ -50,6 +69,12 @@
       "id": "S3",
       "x": 1150.0,
       "y": 1300.0,
+      "registered_x": 1150.0,
+      "registered_y": 1300.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
       "hearing_radius_m": 1700.0,
       "late": false,
       "boots": [
@@ -60,7 +85,10 @@
           "drift_ppm": 35.0,
           "slope": 1.000035,
           "intercept_us": -1793515611378000.0,
-          "reboot_reason": null
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
         }
       ]
     },
@@ -68,6 +96,12 @@
       "id": "S4",
       "x": 600.0,
       "y": 900.0,
+      "registered_x": 600.0,
+      "registered_y": 900.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
       "hearing_radius_m": 1500.0,
       "late": false,
       "boots": [
@@ -78,7 +112,10 @@
           "drift_ppm": 35.0,
           "slope": 1.000035,
           "intercept_us": -1793515611378000.0,
-          "reboot_reason": null
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
         }
       ]
     }

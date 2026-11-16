@@ -83,6 +83,23 @@ def build_truth(scn: Scenario) -> dict:
 
     seq: dict[tuple[str, str], int] = {}
 
+    # Each station gets at most one injected outlier anchor, chosen
+    # deterministically as its middle calibration record.
+    outlier_used: dict[str, bool] = {}
+    station_anchor_index: dict[str, int] = {}
+    anchor_counts = {
+        st.id: sum(
+            1
+            for cal in scn.cal_sources
+            for emission_s in cal.emissions_s
+            if math.hypot(st.x - cal.x, st.y - cal.y) <= st.radius
+        )
+        for st in scn.stations
+    }
+    outlier_target_index = {
+        sid: count // 2 for sid, count in anchor_counts.items() if count
+    }
+
     for cal in scn.cal_sources:
         for emission_s in cal.emissions_s:
             emission_us = us(REFERENCE_EPOCH + timedelta(seconds=emission_s))
@@ -91,8 +108,17 @@ def build_truth(scn: Scenario) -> dict:
                 if d > st.radius:
                     continue
                 boot = st.boot_at(emission_s)
-                arrival_us = int(round(emission_us + d / SPEED_MPS * 1_000_000.0))
+                arrival_us = int(round(
+                    emission_us + d / scn.propagation_speed_mps * 1_000_000.0
+                ))
                 noisy_us = int(round(arrival_us + rng.gauss(0.0, scn.anchor_noise_ms * 1000.0)))
+                outlier_ms = 0.0
+                if st.id in scn.anchor_outliers_ms and not outlier_used.get(st.id):
+                    station_anchor_index[st.id] = station_anchor_index.get(st.id, 0) + 1
+                    if station_anchor_index[st.id] - 1 == outlier_target_index.get(st.id, -1):
+                        outlier_ms = float(scn.anchor_outliers_ms[st.id])
+                        noisy_us += int(round(outlier_ms * 1000.0))
+                        outlier_used[st.id] = True
                 make_row(
                     "anchor",
                     station_id=st.id,
@@ -105,6 +131,7 @@ def build_truth(scn: Scenario) -> dict:
                     uncertainty_ms=12.0,
                     cal_source_id=cal.id,
                     emission_us=emission_us,
+                    injected_outlier_ms=outlier_ms,
                     late=bool(cal.late_from_s is not None and emission_s >= cal.late_from_s),
                 )
                 anchors.append(rows[-1])
@@ -120,7 +147,11 @@ def build_truth(scn: Scenario) -> dict:
                 heard.append(st.id)
                 boot = st.boot_at(emission_s)
                 jitter_us = int(round(rng.gauss(0.0, source.temporal_sigma_ms * 1000.0)))
-                arrival_us = int(round(emission_us + d / SPEED_MPS * 1_000_000.0 + jitter_us))
+                arrival_us = int(round(
+                    emission_us
+                    + d / scn.propagation_speed_mps * 1_000_000.0
+                    + jitter_us
+                ))
                 make_row(
                     "sound",
                     station_id=st.id,
@@ -238,13 +269,20 @@ def write_ground_truth(scn: Scenario, out_dir: Path) -> dict:
         "scenario": scn.name,
         "title": scn.title,
         "description": scn.description,
-        "propagation_speed_mps": SPEED_MPS,
+        "propagation_speed_mps": scn.propagation_speed_mps,
+        "baseline_service_speed_mps": SPEED_MPS,
         "area": scn.area,
         "stations": [
             {
                 "id": s.id,
                 "x": s.x,
                 "y": s.y,
+                "registered_x": s.registered_xy()[0],
+                "registered_y": s.registered_xy()[1],
+                "registered_offset_m": {
+                    "dx": s.registered_dx,
+                    "dy": s.registered_dy,
+                },
                 "hearing_radius_m": s.radius,
                 "late": s.late,
                 "boots": [b.truth() for b in s.boots],
@@ -325,11 +363,12 @@ class Api:
         return self._req("POST", "/admin/reset", params={"confirm": "true"})
 
     def upsert_station(self, spec: StationSpec):
+        reg_x, reg_y = spec.registered_xy()
         body = {
             "id": spec.id,
             "name": f"Station {spec.id}",
-            "x": spec.x,
-            "y": spec.y,
+            "x": reg_x,
+            "y": reg_y,
             "hearing_radius_m": spec.radius,
             "active": True,
             "notes": spec.note or "simulated wetland station",

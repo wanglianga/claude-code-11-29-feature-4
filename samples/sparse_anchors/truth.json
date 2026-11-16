@@ -1,0 +1,881 @@
+{
+  "scenario": "sparse_anchors",
+  "title": "Anchor density too low for any certifiable hypothesis",
+  "description": "Every station hears only a handful of calibration sources, so no boot has the minimum fit anchors and no hold-out partition can be formed. The diagnosis must report insufficient anchors, every hypothesis must stay non-identifiable, and the certification book must reject publication rather than force the residual onto a single parameter.",
+  "propagation_speed_mps": 343.0,
+  "baseline_service_speed_mps": 343.0,
+  "area": {
+    "x_min": -300.0,
+    "x_max": 2100.0,
+    "y_min": -500.0,
+    "y_max": 1300.0
+  },
+  "stations": [
+    {
+      "id": "S1",
+      "x": 300.0,
+      "y": 100.0,
+      "registered_x": 300.0,
+      "registered_y": 100.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
+      "hearing_radius_m": 2200.0,
+      "late": false,
+      "boots": [
+        {
+          "boot_id": "b1",
+          "boot_start_ref": "2026-11-13T23:00:00.000000Z",
+          "boot_start_local": "2026-11-14T09:40:00.000000",
+          "drift_ppm": 35.0,
+          "slope": 1.000035,
+          "intercept_us": -1793515611378000.0,
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "x": 1400.0,
+      "y": 150.0,
+      "registered_x": 1400.0,
+      "registered_y": 150.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
+      "hearing_radius_m": 2200.0,
+      "late": false,
+      "boots": [
+        {
+          "boot_id": "b1",
+          "boot_start_ref": "2026-11-13T23:00:00.000000Z",
+          "boot_start_local": "2026-11-14T09:40:00.000000",
+          "drift_ppm": 35.0,
+          "slope": 1.000035,
+          "intercept_us": -1793515611378000.0,
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "x": 1050.0,
+      "y": 950.0,
+      "registered_x": 1050.0,
+      "registered_y": 950.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
+      "hearing_radius_m": 2200.0,
+      "late": false,
+      "boots": [
+        {
+          "boot_id": "b1",
+          "boot_start_ref": "2026-11-13T23:00:00.000000Z",
+          "boot_start_local": "2026-11-14T09:40:00.000000",
+          "drift_ppm": 35.0,
+          "slope": 1.000035,
+          "intercept_us": -1793515611378000.0,
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "x": 550.0,
+      "y": 600.0,
+      "registered_x": 550.0,
+      "registered_y": 600.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
+      "hearing_radius_m": 2200.0,
+      "late": false,
+      "boots": [
+        {
+          "boot_id": "b1",
+          "boot_start_ref": "2026-11-13T23:00:00.000000Z",
+          "boot_start_local": "2026-11-14T09:40:00.000000",
+          "drift_ppm": 35.0,
+          "slope": 1.000035,
+          "intercept_us": -1793515611378000.0,
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
+        }
+      ]
+    }
+  ],
+  "calibration_sources": [
+    {
+      "id": "C1",
+      "x": 100.0,
+      "y": -150.0,
+      "emissions": [
+        "2026-11-13T23:20:00.000000Z",
+        "2026-11-13T23:40:00.000000Z"
+      ],
+      "emissions_us": [
+        1794612000000000,
+        1794613200000000
+      ],
+      "late_from": null
+    },
+    {
+      "id": "C2",
+      "x": 1650.0,
+      "y": 900.0,
+      "emissions": [
+        "2026-11-13T23:22:00.000000Z",
+        "2026-11-13T23:42:00.000000Z"
+      ],
+      "emissions_us": [
+        1794612120000000,
+        1794613320000000
+      ],
+      "late_from": null
+    }
+  ],
+  "events": [
+    {
+      "key": "A#0",
+      "source_id": "A",
+      "call_index": 0,
+      "class_label": "chirp",
+      "x": 760.0,
+      "y": 300.0,
+      "emission_s": 120.0,
+      "emission": "2026-11-14T00:02:00.000000Z",
+      "heard_by": [
+        "S1",
+        "S2",
+        "S3",
+        "S4"
+      ]
+    },
+    {
+      "key": "A#1",
+      "source_id": "A",
+      "call_index": 1,
+      "class_label": "chirp",
+      "x": 760.0,
+      "y": 300.0,
+      "emission_s": 900.0,
+      "emission": "2026-11-14T00:15:00.000000Z",
+      "heard_by": [
+        "S1",
+        "S2",
+        "S3",
+        "S4"
+      ]
+    }
+  ],
+  "waves": [
+    {
+      "station_id": "S4",
+      "boot_id": "b1",
+      "phase": "early",
+      "upload_s": -1038.051343196009,
+      "declare_through_ref_s": -1076.677346,
+      "declare_complete": false,
+      "records": [
+        {
+          "source_seq": 1,
+          "kind": "calibration",
+          "class_label": "calibration",
+          "local_capture_at": "2026-11-14T10:00:02.593066",
+          "features": [
+            -0.033827,
+            -0.034878,
+            -0.017792,
+            -0.009364
+          ],
+          "uncertainty_ms": 12.0,
+          "calibration": {
+            "source_id": "C1",
+            "emission_reference_at": "2026-11-13T23:20:00.000000Z"
+          }
+        },
+        {
+          "source_seq": 2,
+          "kind": "calibration",
+          "class_label": "calibration",
+          "local_capture_at": "2026-11-14T10:02:03.372334",
+          "features": [
+            0.028812,
+            0.007245,
+            0.002385,
+            -0.025983
+          ],
+          "uncertainty_ms": 12.0,
+          "calibration": {
+            "source_id": "C2",
+            "emission_reference_at": "2026-11-13T23:22:00.000000Z"
+          }
+        },
+        {
+          "source_seq": 3,
+          "kind": "calibration",
+          "class_label": "calibration",
+          "local_capture_at": "2026-11-14T10:20:02.634565",
+          "features": [
+            -0.008947,
+            -0.019138,
+            -0.010412,
+            0.024418
+          ],
+          "uncertainty_ms": 12.0,
+          "calibration": {
+            "source_id": "C1",
+            "emission_reference_at": "2026-11-13T23:40:00.000000Z"
+          }
+        },
+        {
+          "source_seq": 4,
+          "kind": "calibration",
+          "class_label": "calibration",
+          "local_capture_at": "2026-11-14T10:22:03.410970",
+          "features": [
+            -0.022396,
+            0.019547,
+            0.022036,
+            0.003145
+          ],
+          "uncertainty_ms": 12.0,
+          "calibration": {
+            "source_id": "C2",
+            "emission_reference_at": "2026-11-13T23:42:00.000000Z"
+          }
+        }
+      ],
+      "truth": [
+        {
+          "source_seq": 1,
+          "kind": "calibration",
+          "local_capture_us": 1159202593066,
+          "arrival_us": 1794612002550977,
+          "truth_source": null,
+          "truth_call_index": null,
+          "emission_us": 1794612000000000
+        },
+        {
+          "source_seq": 2,
+          "kind": "calibration",
+          "local_capture_us": 1159323372334,
+          "arrival_us": 1794612123326018,
+          "truth_source": null,
+          "truth_call_index": null,
+          "emission_us": 1794612120000000
+        },
+        {
+          "source_seq": 3,
+          "kind": "calibration",
+          "local_capture_us": 1160402634565,
+          "arrival_us": 1794613202550476,
+          "truth_source": null,
+          "truth_call_index": null,
+          "emission_us": 1794613200000000
+        },
+        {
+          "source_seq": 4,
+          "kind": "calibration",
+          "local_capture_us": 1160523410970,
+          "arrival_us": 1794613323322654,
+          "truth_source": null,
+          "truth_call_index": null,
+          "emission_us": 1794613320000000
+        }
+      ]
+    },
+    {
+      "station_id": "S1",
+      "boot_id": "b1",
+      "phase": "early",
+      "upload_s": -1030.0666590920582,
+      "declare_through_ref_s": -1075.423739,
+      "declare_complete": false,
+      "records": [
+        {
+          "source_seq": 1,
+          "kind": "calibration",
+          "class_label": "calibration",
+          "local_capture_at": "2026-11-14T10:00:00.974921",
+          "features": [
+            0.010229,
+            -0.004522,
+            -0.006301,
+            -0.0186
+          ],
+          "uncertainty_ms": 12.0,
+          "calibration": {
+            "source_id": "C1",
+            "emission_reference_at": "2026-11-13T23:20:00.000000Z"
+          }
+        },
+        {
+          "source_seq": 2,
+          "kind": "calibration",
+          "class_label": "calibration",
+          "local_capture_at": "2026-11-14T10:02:04.619774",
+          "features": [
+            0.004895,
+            0.00853,
+            -0.029795,
+            0.000969
+          ],
+          "uncertainty_ms": 12.0,
+          "calibration": {
+            "source_id": "C2",
+            "emission_reference_at": "2026-11-13T23:22:00.000000Z"
+          }
+        },
+        {
+          "source_seq": 3,
+          "kind": "calibration",
+          "class_label": "calibration",
+          "local_capture_at": "2026-11-14T10:20:01.018044",
+          "features": [
+            -0.000918,
+            0.010419,
+            -0.012845,
+            0.006174
+          ],
+          "uncertainty_ms": 12.0,
+          "calibration": {
+            "source_id": "C1",
+            "emission_reference_at": "2026-11-13T23:40:00.000000Z"
+          }
+        },
+        {
+          "source_seq": 4,
+          "kind": "calibration",
+          "class_label": "calibration",
+          "local_capture_at": "2026-11-14T10:22:04.664621",
+          "features": [
+            -0.012235,
+            -0.009054,
+            -0.025296,
+            -0.019352
+          ],
+          "uncertainty_ms": 12.0,
+          "calibration": {
+            "source_id": "C2",
+            "emission_reference_at": "2026-11-13T23:42:00.000000Z"
+          }
+        }
+      ],
+      "truth": [
+        {
+          "source_seq": 1,
+          "kind": "calibration",
+          "local_capture_us": 1159200974921,
+          "arrival_us": 1794612000932888,
+          "truth_source": null,
+          "truth_call_index": null,
+          "emission_us": 1794612000000000
+        },
+        {
+          "source_seq": 2,
+          "kind": "calibration",
+          "local_capture_us": 1159324619774,
+          "arrival_us": 1794612124573414,
+          "truth_source": null,
+          "truth_call_index": null,
+          "emission_us": 1794612120000000
+        },
+        {
+          "source_seq": 3,
+          "kind": "calibration",
+          "local_capture_us": 1160401018044,
+          "arrival_us": 1794613200934011,
+          "truth_source": null,
+          "truth_call_index": null,
+          "emission_us": 1794613200000000
+        },
+        {
+          "source_seq": 4,
+          "kind": "calibration",
+          "local_capture_us": 1160524664621,
+          "arrival_us": 1794613324576261,
+          "truth_source": null,
+          "truth_call_index": null,
+          "emission_us": 1794613320000000
+        }
+      ]
+    },
+    {
+      "station_id": "S2",
+      "boot_id": "b1",
+      "phase": "early",
+      "upload_s": -1004.1098518351703,
+      "declare_through_ref_s": -1077.696195,
+      "declare_complete": false,
+      "records": [
+        {
+          "source_seq": 1,
+          "kind": "calibration",
+          "class_label": "calibration",
+          "local_capture_at": "2026-11-14T10:00:03.931408",
+          "features": [
+            0.022238,
+            0.008483,
+            0.020738,
+            0.004978
+          ],
+          "uncertainty_ms": 12.0,
+          "calibration": {
+            "source_id": "C1",
+            "emission_reference_at": "2026-11-13T23:20:00.000000Z"
+          }
+        },
+        {
+          "source_seq": 2,
+          "kind": "calibration",
+          "class_label": "calibration",
+          "local_capture_at": "2026-11-14T10:02:02.353761",
+          "features": [
+            -0.040287,
+            -0.006432,
+            -0.002123,
+            -0.016345
+          ],
+          "uncertainty_ms": 12.0,
+          "calibration": {
+            "source_id": "C2",
+            "emission_reference_at": "2026-11-13T23:22:00.000000Z"
+          }
+        },
+        {
+          "source_seq": 3,
+          "kind": "calibration",
+          "class_label": "calibration",
+          "local_capture_at": "2026-11-14T10:20:03.974622",
+          "features": [
+            -0.013223,
+            0.034351,
+            0.011132,
+            0.02394
+          ],
+          "uncertainty_ms": 12.0,
+          "calibration": {
+            "source_id": "C1",
+            "emission_reference_at": "2026-11-13T23:40:00.000000Z"
+          }
+        },
+        {
+          "source_seq": 4,
+          "kind": "calibration",
+          "class_label": "calibration",
+          "local_capture_at": "2026-11-14T10:22:02.392086",
+          "features": [
+            0.025777,
+            -0.040636,
+            -0.029154,
+            0.004787
+          ],
+          "uncertainty_ms": 12.0,
+          "calibration": {
+            "source_id": "C2",
+            "emission_reference_at": "2026-11-13T23:42:00.000000Z"
+          }
+        }
+      ],
+      "truth": [
+        {
+          "source_seq": 1,
+          "kind": "calibration",
+          "local_capture_us": 1159203931408,
+          "arrival_us": 1794612003889272,
+          "truth_source": null,
+          "truth_call_index": null,
+          "emission_us": 1794612000000000
+        },
+        {
+          "source_seq": 2,
+          "kind": "calibration",
+          "local_capture_us": 1159322353761,
+          "arrival_us": 1794612122307480,
+          "truth_source": null,
+          "truth_call_index": null,
+          "emission_us": 1794612120000000
+        },
+        {
+          "source_seq": 3,
+          "kind": "calibration",
+          "local_capture_us": 1160403974622,
+          "arrival_us": 1794613203890486,
+          "truth_source": null,
+          "truth_call_index": null,
+          "emission_us": 1794613200000000
+        },
+        {
+          "source_seq": 4,
+          "kind": "calibration",
+          "local_capture_us": 1160522392086,
+          "arrival_us": 1794613322303805,
+          "truth_source": null,
+          "truth_call_index": null,
+          "emission_us": 1794613320000000
+        }
+      ]
+    },
+    {
+      "station_id": "S3",
+      "boot_id": "b1",
+      "phase": "early",
+      "upload_s": -944.683879357983,
+      "declare_through_ref_s": -1078.241779,
+      "declare_complete": false,
+      "records": [
+        {
+          "source_seq": 1,
+          "kind": "calibration",
+          "class_label": "calibration",
+          "local_capture_at": "2026-11-14T10:00:04.280384",
+          "features": [
+            0.003707,
+            -0.033321,
+            0.017105,
+            0.010128
+          ],
+          "uncertainty_ms": 12.0,
+          "calibration": {
+            "source_id": "C1",
+            "emission_reference_at": "2026-11-13T23:20:00.000000Z"
+          }
+        },
+        {
+          "source_seq": 2,
+          "kind": "calibration",
+          "class_label": "calibration",
+          "local_capture_at": "2026-11-14T10:02:01.802590",
+          "features": [
+            -0.001246,
+            -0.029293,
+            0.016557,
+            0.013387
+          ],
+          "uncertainty_ms": 12.0,
+          "calibration": {
+            "source_id": "C2",
+            "emission_reference_at": "2026-11-13T23:22:00.000000Z"
+          }
+        },
+        {
+          "source_seq": 3,
+          "kind": "calibration",
+          "class_label": "calibration",
+          "local_capture_at": "2026-11-14T10:20:04.320353",
+          "features": [
+            -0.01479,
+            -0.006881,
+            -0.002128,
+            0.012642
+          ],
+          "uncertainty_ms": 12.0,
+          "calibration": {
+            "source_id": "C1",
+            "emission_reference_at": "2026-11-13T23:40:00.000000Z"
+          }
+        },
+        {
+          "source_seq": 4,
+          "kind": "calibration",
+          "class_label": "calibration",
+          "local_capture_at": "2026-11-14T10:22:01.846483",
+          "features": [
+            0.01157,
+            -0.037999,
+            -0.050365,
+            0.007148
+          ],
+          "uncertainty_ms": 12.0,
+          "calibration": {
+            "source_id": "C2",
+            "emission_reference_at": "2026-11-13T23:42:00.000000Z"
+          }
+        }
+      ],
+      "truth": [
+        {
+          "source_seq": 1,
+          "kind": "calibration",
+          "local_capture_us": 1159204280384,
+          "arrival_us": 1794612004238236,
+          "truth_source": null,
+          "truth_call_index": null,
+          "emission_us": 1794612000000000
+        },
+        {
+          "source_seq": 2,
+          "kind": "calibration",
+          "local_capture_us": 1159321802590,
+          "arrival_us": 1794612121756329,
+          "truth_source": null,
+          "truth_call_index": null,
+          "emission_us": 1794612120000000
+        },
+        {
+          "source_seq": 3,
+          "kind": "calibration",
+          "local_capture_us": 1160404320353,
+          "arrival_us": 1794613204236205,
+          "truth_source": null,
+          "truth_call_index": null,
+          "emission_us": 1794613200000000
+        },
+        {
+          "source_seq": 4,
+          "kind": "calibration",
+          "local_capture_us": 1160521846483,
+          "arrival_us": 1794613321758221,
+          "truth_source": null,
+          "truth_call_index": null,
+          "emission_us": 1794613320000000
+        }
+      ]
+    },
+    {
+      "station_id": "S4",
+      "boot_id": "b1",
+      "phase": "late",
+      "upload_s": 1501.0676290000001,
+      "declare_through_ref_s": 1501.0676290000001,
+      "declare_complete": true,
+      "records": [
+        {
+          "source_seq": 5,
+          "kind": "sound",
+          "class_label": "chirp",
+          "local_capture_at": "2026-11-14T10:42:01.197866",
+          "features": [
+            0.980332,
+            0.324152,
+            0.208279,
+            0.897748
+          ],
+          "uncertainty_ms": 25.0
+        },
+        {
+          "source_seq": 6,
+          "kind": "sound",
+          "class_label": "chirp",
+          "local_capture_at": "2026-11-14T10:55:01.225166",
+          "features": [
+            1.021072,
+            0.284596,
+            0.218909,
+            0.880975
+          ],
+          "uncertainty_ms": 25.0
+        }
+      ],
+      "truth": [
+        {
+          "source_seq": 5,
+          "kind": "sound",
+          "local_capture_us": 1161721197866,
+          "arrival_us": 1794614521067629,
+          "truth_source": "A",
+          "truth_call_index": 0,
+          "emission_us": 1794614520000000
+        },
+        {
+          "source_seq": 6,
+          "kind": "sound",
+          "local_capture_us": 1162501225166,
+          "arrival_us": 1794615301067629,
+          "truth_source": "A",
+          "truth_call_index": 1,
+          "emission_us": 1794615300000000
+        }
+      ]
+    },
+    {
+      "station_id": "S1",
+      "boot_id": "b1",
+      "phase": "late",
+      "upload_s": 1501.462383,
+      "declare_through_ref_s": 1501.462383,
+      "declare_complete": true,
+      "records": [
+        {
+          "source_seq": 5,
+          "kind": "sound",
+          "class_label": "chirp",
+          "local_capture_at": "2026-11-14T10:42:01.592634",
+          "features": [
+            1.006515,
+            0.32391,
+            0.209285,
+            0.90778
+          ],
+          "uncertainty_ms": 25.0
+        },
+        {
+          "source_seq": 6,
+          "kind": "sound",
+          "class_label": "chirp",
+          "local_capture_at": "2026-11-14T10:55:01.619934",
+          "features": [
+            1.009747,
+            0.301806,
+            0.217185,
+            0.890077
+          ],
+          "uncertainty_ms": 25.0
+        }
+      ],
+      "truth": [
+        {
+          "source_seq": 5,
+          "kind": "sound",
+          "local_capture_us": 1161721592634,
+          "arrival_us": 1794614521462383,
+          "truth_source": "A",
+          "truth_call_index": 0,
+          "emission_us": 1794614520000000
+        },
+        {
+          "source_seq": 6,
+          "kind": "sound",
+          "local_capture_us": 1162501619934,
+          "arrival_us": 1794615301462383,
+          "truth_source": "A",
+          "truth_call_index": 1,
+          "emission_us": 1794615300000000
+        }
+      ]
+    },
+    {
+      "station_id": "S2",
+      "boot_id": "b1",
+      "phase": "late",
+      "upload_s": 1501.916452,
+      "declare_through_ref_s": 1501.916452,
+      "declare_complete": true,
+      "records": [
+        {
+          "source_seq": 5,
+          "kind": "sound",
+          "class_label": "chirp",
+          "local_capture_at": "2026-11-14T10:42:02.046719",
+          "features": [
+            0.976475,
+            0.319226,
+            0.214327,
+            0.907944
+          ],
+          "uncertainty_ms": 25.0
+        },
+        {
+          "source_seq": 6,
+          "kind": "sound",
+          "class_label": "chirp",
+          "local_capture_at": "2026-11-14T10:55:02.074019",
+          "features": [
+            1.015625,
+            0.300402,
+            0.186793,
+            0.914197
+          ],
+          "uncertainty_ms": 25.0
+        }
+      ],
+      "truth": [
+        {
+          "source_seq": 5,
+          "kind": "sound",
+          "local_capture_us": 1161722046719,
+          "arrival_us": 1794614521916452,
+          "truth_source": "A",
+          "truth_call_index": 0,
+          "emission_us": 1794614520000000
+        },
+        {
+          "source_seq": 6,
+          "kind": "sound",
+          "local_capture_us": 1162502074019,
+          "arrival_us": 1794615301916452,
+          "truth_source": "A",
+          "truth_call_index": 1,
+          "emission_us": 1794615300000000
+        }
+      ]
+    },
+    {
+      "station_id": "S3",
+      "boot_id": "b1",
+      "phase": "late",
+      "upload_s": 1502.075097,
+      "declare_through_ref_s": 1502.075097,
+      "declare_complete": true,
+      "records": [
+        {
+          "source_seq": 5,
+          "kind": "sound",
+          "class_label": "chirp",
+          "local_capture_at": "2026-11-14T10:42:02.205370",
+          "features": [
+            0.990495,
+            0.312635,
+            0.172832,
+            0.89724
+          ],
+          "uncertainty_ms": 25.0
+        },
+        {
+          "source_seq": 6,
+          "kind": "sound",
+          "class_label": "chirp",
+          "local_capture_at": "2026-11-14T10:55:02.232670",
+          "features": [
+            0.993328,
+            0.2793,
+            0.197979,
+            0.897765
+          ],
+          "uncertainty_ms": 25.0
+        }
+      ],
+      "truth": [
+        {
+          "source_seq": 5,
+          "kind": "sound",
+          "local_capture_us": 1161722205370,
+          "arrival_us": 1794614522075097,
+          "truth_source": "A",
+          "truth_call_index": 0,
+          "emission_us": 1794614520000000
+        },
+        {
+          "source_seq": 6,
+          "kind": "sound",
+          "local_capture_us": 1162502232670,
+          "arrival_us": 1794615302075097,
+          "truth_source": "A",
+          "truth_call_index": 1,
+          "emission_us": 1794615300000000
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "max_anchors_per_boot": 4,
+    "expect_no_certifiable_hypothesis": true
+  }
+}

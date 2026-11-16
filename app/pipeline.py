@@ -14,13 +14,13 @@ import hashlib
 import json
 import math
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Callable
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import association, calibration as calib, solver
+from . import association, calibration as calib, certified, solver
 from .config import Area, Settings, settings as global_settings
 from .localize import StationPoint
 from .models import (
@@ -379,10 +379,18 @@ class Collected:
 
 
 def collect(
-    db: Session, cutoff_us: int, run: ProcessingRun, class_labels: list[str] | None
+    db: Session, cutoff_us: int, run: ProcessingRun, class_labels: list[str] | None,
+    cfg: Settings | None = None,
 ) -> Collected:
+    cfg = cfg or global_settings
+    overrides = certified.coordinate_overrides(db)
     stations = {
-        s.id: StationPoint(s.id, s.x, s.y, s.hearing_radius_m)
+        s.id: StationPoint(
+            s.id,
+            s.x + overrides.get(s.id, {}).get("dx_m", 0.0),
+            s.y + overrides.get(s.id, {}).get("dy_m", 0.0),
+            s.hearing_radius_m,
+        )
         for s in db.execute(select(Station)).scalars()
     }
     class_limits = {
@@ -429,13 +437,20 @@ def collect(
             )
             continue
         model = db.get(CalibrationModel, obs.calibration_model_id)
+        # Certified residual-level clock corrections apply on top of the
+        # per-boot calibration; the corrected arrival and the certified
+        # parameter id are both frozen into the run's collect checkpoint.
+        clock_corr, clock_cert_id = certified.clock_correction_us(
+            db, obs.station_id, obs.boot_id, obs.corrected_arrival_us
+        )
+        arrival_us = obs.corrected_arrival_us - int(round(clock_corr))
         result.append(
             association.ObsInput(
                 observation_id=obs.id,
                 station_id=obs.station_id,
                 boot_id=obs.boot_id,
                 class_label=obs.class_label,
-                corrected_arrival_us=obs.corrected_arrival_us,
+                corrected_arrival_us=arrival_us,
                 uncertainty_us=obs.corrected_uncertainty_us,
                 features=[float(v) for v in obs.features],
                 calibration_model_id=obs.calibration_model_id,
@@ -703,6 +718,21 @@ def execute_run(
     run.started_at_us = run.started_at_us or now_us()
     db.flush()
     checkpoint = dict(run.checkpoint_json or {})
+    # Certified parameters are frozen at first execution: a run paused and
+    # resumed later must not blend a speed/coordinate revision that arrived in
+    # between.  Clock calibration itself always uses the configured baseline
+    # speed, so the evidence library never certifies against its own output.
+    if checkpoint.get("certified"):
+        cfg = replace(
+            cfg, propagation_speed_mps=checkpoint["certified"]["propagation_speed_mps"]
+        )
+    else:
+        cfg, certified_param_ids = certified.effective_settings(db, cfg)
+        checkpoint["certified"] = {
+            "certified_parameter_ids": certified_param_ids,
+            "propagation_speed_mps": cfg.propagation_speed_mps,
+        }
+        _save_checkpoint(run, checkpoint)
     paused_phases = set(checkpoint.get("paused", []))
     area = _area_from_params(run.params_json)
     ctx = PipelineContext(
@@ -740,7 +770,7 @@ def execute_run(
 
         if not checkpoint.get("collect"):
             _set_phase(ctx, "collect")
-            collected = collect(db, run.cutoff_us, run, class_labels)
+            collected = collect(db, run.cutoff_us, run, class_labels, cfg=cfg)
             checkpoint["collect"] = {
                 # Full input snapshot: a resumed run must see exactly this set
                 # and these calibrated arrivals, even if later uploads or a

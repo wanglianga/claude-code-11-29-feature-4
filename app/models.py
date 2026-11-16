@@ -350,3 +350,244 @@ class AuditLog(Base):
     target_id: Mapped[str | None] = mapped_column(String(64))
     detail: Mapped[dict | None] = mapped_column(JSONB)
     created_at_us: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+
+# --------------------------------------------------------------------------- #
+# Calibration hypothesis diagnostics & parameter certification
+# --------------------------------------------------------------------------- #
+class PropagationRegion(Base):
+    """A rectangular applicability region for a regional propagation model."""
+
+    __tablename__ = "propagation_regions"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    x_min: Mapped[float] = mapped_column(Float, nullable=False)
+    x_max: Mapped[float] = mapped_column(Float, nullable=False)
+    y_min: Mapped[float] = mapped_column(Float, nullable=False)
+    y_max: Mapped[float] = mapped_column(Float, nullable=False)
+    baseline_speed_mps: Mapped[float] = mapped_column(Float, nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at_us: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+
+class DiagnosticEvidence(Base):
+    """Frozen calibration evidence library snapshot for one anchor observation.
+
+    Each row keeps everything a hypothesis fit needs independently of later
+    edits to the station register: source position/emission, the station's
+    recorded measurement point, arrival readings and boot identity.
+    """
+
+    __tablename__ = "diagnostic_evidence"
+    __table_args__ = (
+        UniqueConstraint(
+            "diagnostic_run_id", "observation_id", name="uq_diag_evidence_run_obs"
+        ),
+        Index("ix_diag_evidence_station_boot", "station_id", "boot_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    diagnostic_run_id: Mapped[int] = mapped_column(
+        ForeignKey("diagnostic_runs.id", ondelete="CASCADE"), nullable=False
+    )
+    station_id: Mapped[str] = mapped_column(ForeignKey("stations.id"), nullable=False)
+    boot_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    observation_id: Mapped[int] = mapped_column(ForeignKey("observations.id"), nullable=False)
+    calibration_source_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_x: Mapped[float] = mapped_column(Float, nullable=False)
+    source_y: Mapped[float] = mapped_column(Float, nullable=False)
+    station_x: Mapped[float] = mapped_column(Float, nullable=False)
+    station_y: Mapped[float] = mapped_column(Float, nullable=False)
+    emission_us: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    distance_m: Mapped[float] = mapped_column(Float, nullable=False)
+    direction_rad: Mapped[float] = mapped_column(Float, nullable=False)
+    propagation_us: Mapped[float] = mapped_column(Float, nullable=False)
+    reference_arrival_us: Mapped[float] = mapped_column(Float, nullable=False)
+    local_capture_us: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    detrended_residual_us: Mapped[float] = mapped_column(Float, nullable=False)
+    # How the local reading was mapped to reference time: the pipeline's
+    # validated per-boot model, or the diagnostic layer's own robust clock
+    # trend (used when the pipeline rejected the boot's calibration).
+    mapping_source: Mapped[str] = mapped_column(String(32), nullable=False)
+    partition: Mapped[str] = mapped_column(String(16), nullable=False)  # fit | holdout
+    excluded: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    exclusion_reason: Mapped[str | None] = mapped_column(Text)
+    created_at_us: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+
+class DiagnosticRun(Base):
+    """One attribution diagnosis over a frozen cutoff and anchor split."""
+
+    __tablename__ = "diagnostic_runs"
+    __table_args__ = (
+        UniqueConstraint("batch_id", name="uq_diagnostic_run_batch"),
+        Index("ix_diagnostic_runs_scope", "scope_type", "station_id", "region_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    batch_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    scope_type: Mapped[str] = mapped_column(String(16), nullable=False)  # station | region
+    station_id: Mapped[str | None] = mapped_column(ForeignKey("stations.id"))
+    region_id: Mapped[str | None] = mapped_column(ForeignKey("propagation_regions.id"))
+    organization: Mapped[str] = mapped_column(String(24), nullable=False)
+    cutoff_us: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    baseline_speed_mps: Mapped[float] = mapped_column(Float, nullable=False)
+    boot_ids: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    station_ids: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    fit_anchor_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    holdout_anchor_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    excluded_anchor_ids: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
+    diagnosis_json: Mapped[dict | None] = mapped_column(JSONB)
+    error: Mapped[str | None] = mapped_column(Text)
+    created_by: Mapped[str | None] = mapped_column(String(128))
+    created_at_us: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    finished_at_us: Mapped[int | None] = mapped_column(BigInteger)
+
+
+class HypothesisRecord(Base):
+    """The hypothesis register: clock offset/drift, coordinate shift, speed model."""
+
+    __tablename__ = "hypotheses"
+    __table_args__ = (
+        UniqueConstraint("code", name="uq_hypothesis_code"),
+        Index("ix_hypotheses_run_type", "diagnostic_run_id", "hypothesis_type"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    code: Mapped[str] = mapped_column(String(48), nullable=False)
+    diagnostic_run_id: Mapped[int] = mapped_column(
+        ForeignKey("diagnostic_runs.id", ondelete="CASCADE"), nullable=False
+    )
+    organization: Mapped[str] = mapped_column(String(24), nullable=False)
+    hypothesis_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    station_id: Mapped[str | None] = mapped_column(ForeignKey("stations.id"))
+    boot_id: Mapped[str | None] = mapped_column(String(64))
+    region_id: Mapped[str | None] = mapped_column(ForeignKey("propagation_regions.id"))
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="candidate")
+    preference_rank: Mapped[int | None] = mapped_column(Integer)
+    preference_reason: Mapped[str | None] = mapped_column(Text)
+    params_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    fit_metrics_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    holdout_metrics_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    identifiable: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    identifiability_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    direction_analysis_json: Mapped[dict | None] = mapped_column(JSONB)
+    calibration_version_hash: Mapped[str | None] = mapped_column(String(64))
+    created_at_us: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+
+class EventConfirmation(Base):
+    """A human investigator's explicit confirmation of a published event."""
+
+    __tablename__ = "event_confirmations"
+    __table_args__ = (
+        UniqueConstraint("event_id", name="uq_event_confirmation"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[int] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"), nullable=False)
+    confirmed_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text)
+    created_at_us: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+
+class CertificationRecord(Base):
+    """The certification book: approved or rejected parameter publications."""
+
+    __tablename__ = "certifications"
+    __table_args__ = (
+        UniqueConstraint("cert_code", name="uq_certification_code"),
+        Index("ix_certifications_scope", "parameter_type", "station_id", "region_id"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    cert_code: Mapped[str] = mapped_column(String(48), nullable=False)
+    hypothesis_id: Mapped[int] = mapped_column(ForeignKey("hypotheses.id"), nullable=False)
+    diagnostic_run_id: Mapped[int] = mapped_column(ForeignKey("diagnostic_runs.id"), nullable=False)
+    parameter_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    station_id: Mapped[str | None] = mapped_column(ForeignKey("stations.id"))
+    boot_id: Mapped[str | None] = mapped_column(String(64))
+    region_id: Mapped[str | None] = mapped_column(ForeignKey("propagation_regions.id"))
+    status: Mapped[str] = mapped_column(String(24), nullable=False, default="pending")
+    decision_reason: Mapped[str | None] = mapped_column(Text)
+    gate_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    holdout_comparison_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    exclusion_comparison_json: Mapped[dict | None] = mapped_column(JSONB)
+    identifiability_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    params_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    supersedes_certification_id: Mapped[int | None] = mapped_column(ForeignKey("certifications.id"))
+    decided_by: Mapped[str | None] = mapped_column(String(128))
+    created_at_us: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    decided_at_us: Mapped[int | None] = mapped_column(BigInteger)
+
+
+class CertifiedParameter(Base):
+    """Approved parameters handed to the localization dataset."""
+
+    __tablename__ = "certified_parameters"
+    __table_args__ = (
+        UniqueConstraint(
+            "parameter_type", "station_id", "boot_id", "region_id", "version",
+            name="uq_certified_parameter_version",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    certification_id: Mapped[int] = mapped_column(ForeignKey("certifications.id"), nullable=False)
+    parameter_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    station_id: Mapped[str | None] = mapped_column(ForeignKey("stations.id"))
+    boot_id: Mapped[str | None] = mapped_column(String(64))
+    region_id: Mapped[str | None] = mapped_column(ForeignKey("propagation_regions.id"))
+    params_json: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    identifiability_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    affected_event_versions: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    handoff_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    valid_from_us: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    valid_to_us: Mapped[int | None] = mapped_column(BigInteger)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    created_at_us: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+
+class EventParameterImpact(Base):
+    """Per-event consequence of a certified parameter revision."""
+
+    __tablename__ = "event_parameter_impacts"
+    __table_args__ = (
+        UniqueConstraint("certification_id", "event_id", name="uq_cert_event_impact"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    certification_id: Mapped[int] = mapped_column(ForeignKey("certifications.id"), nullable=False)
+    event_id: Mapped[int] = mapped_column(ForeignKey("events.id"), nullable=False)
+    event_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    event_status_at_impact: Mapped[str] = mapped_column(String(32), nullable=False)
+    human_confirmed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    action: Mapped[str] = mapped_column(String(32), nullable=False)
+    reason: Mapped[str | None] = mapped_column(Text)
+    review_draft_id: Mapped[int | None] = mapped_column(ForeignKey("localization_review_drafts.id"))
+    created_at_us: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+
+class LocalizationReviewDraft(Base):
+    """A pending re-localization draft; never overwrites a confirmed event."""
+
+    __tablename__ = "localization_review_drafts"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    certification_id: Mapped[int] = mapped_column(ForeignKey("certifications.id"), nullable=False)
+    source_event_id: Mapped[int] = mapped_column(ForeignKey("events.id"), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending_review")
+    params_snapshot_json: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    before_json: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    after_json: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    delta_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    reason: Mapped[str | None] = mapped_column(Text)
+    resolved: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    resolution_note: Mapped[str | None] = mapped_column(Text)
+    created_at_us: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    updated_at_us: Mapped[int] = mapped_column(BigInteger, nullable=False)

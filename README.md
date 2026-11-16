@@ -89,7 +89,7 @@ PGPASSWORD=ccdev /opt/postgresql-18/bin/psql -h 127.0.0.1 -U ccdev -d postgres \
 BASE=http://127.0.0.1:8000 ./scripts/demo.sh
 ```
 
-该脚本对五个内置场景逐个执行：重置 → 模拟台站分批上传 → 运行处理 → 独立校验，
+该脚本对七个内置场景逐个执行：重置 → 模拟台站分批上传 → 运行处理 → 独立校验，
 最后打印每条检查的通过情况。也可以手动分步执行（见第 5 节）。
 
 ---
@@ -119,15 +119,16 @@ PGPASSWORD=ccdev /opt/postgresql-18/bin/psql -h 127.0.0.1 -U ccdev -d postgres \
 ## 4. 验证方式（实际执行过的）
 
 ```bash
-# 1) 单元 + 集成 + 接口契约 + 独立校验器，共 59 个用例
+# 1) 单元 + 集成 + 接口契约 + 独立校验器，共 82 个用例
 .venv/bin/python -m pytest
-# 59 passed
+# 82 passed
 
-# 2) 五个样例场景的端到端自检（真实 HTTP 服务）
-BASE=http://127.0.0.1:8000 ./scripts/demo.sh
+# 2) 七个样例场景的端到端自检（真实 HTTP 服务）
+BASE=http://127.0.0.1:8000 bash scripts/demo.sh
 
-# 说明：上面的 pytest 含 6 个由独立校验器驱动的端到端用例、5 个接口契约用例；
-# demo.sh 使用真实 uvicorn 进程 + 真实 PostgreSQL，逐个场景输出校验结论。
+# 说明：上面的 pytest 含 8 个由独立校验器驱动的端到端用例、5 个接口契约用例，
+# 以及 14 个诊断纯算法/集成用例与 7 个认证簿用例；demo.sh 使用真实 uvicorn 进程
+# + 真实 PostgreSQL，逐个场景输出校验结论。
 
 # 3) 单独校验某个已加载场景
 .venv/bin/python -m verifier.verify --scenario reboot \
@@ -149,6 +150,8 @@ BASE=http://127.0.0.1:8000 ./scripts/demo.sh
 | `collinear` 共线站点 | 6 | 全部通过 | 每个事件返回 2 个镜像候选区域，`position.certain=false`，不报单一坐标 |
 | `duplicates` 重复补传 | 10 | 全部通过 | 整批重放 `accepted=0`；冲突记录 1 条且原文未被覆盖；事件数与记录数不变 |
 | `revision` 迟报 + 校准修订 | 11 | 全部通过 | 第二次运行校准哈希不同；旧事件 `superseded` 且由新事件 `supersedes_events` 指名；实际活动数 5 条而非叠加 |
+| `diagnosis` 时钟阶跃/坐标误记/区域速度 | 7 | 全部通过 | S1 时钟阶跃拟合 181.4 ms（真值 180）；S2 坐标位移恢复 93.6 m；S3 异常锚点排除并留前后对比；区域共享速度 323.5 m/s（真值 328） |
+| `sparse_anchors` 锚点不足 | 3 | 全部通过 | 无法形成留出分区，全部假设被认证门禁拒绝，`/certified-parameters` 为 0 |
 
 独立校验器（`verifier/verify.py`）不引用 `app/` 下任何模块，按
 `arrival = emission + 距离/速度`、`local = slope_boot·arrival + intercept_boot` 从真值反算，
@@ -212,6 +215,15 @@ curl -s "$BASE/events/1/anchors" -H "$KEY" | python -m json.tool
 | `POST /runs/{id}/select {"option_id":"OPT-02"}` | 人工选定分解 |
 | `POST /runs/{id}/resume` | 从原 cutoff 续算 |
 | `GET /stats` | 总体计数 |
+| `POST /propagation-regions` | 定义区域传播模型的适用范围与基线速度 |
+| `POST /diagnostic-runs` | 跑一次故障归因诊断（station 或 region 范围），冻结证据并生成假设册 |
+| `GET /diagnostic-runs/{id}/evidence` | 查看冻结证据库，可按 `partition=fit|holdout`、`excluded` 过滤 |
+| `GET /hypotheses?diagnostic_run_id=...` | 查看时钟/坐标/速度假设的拟合、留出指标、可识别条件与排名理由 |
+| `POST /hypotheses/{id}/certify` | 走认证三道门禁，批准或拒绝一个假设 |
+| `GET /certifications` / `/{id}/impacts` | 认证簿与每个认证影响的事件版本 |
+| `GET /certified-parameters` | 已交给定位数据集的生效参数 |
+| `POST /events/{id}/confirmations` | 人工确认事件（之后参数修订只生成待复核稿） |
+| `GET /review-drafts` / `POST /review-drafts/{id}/resolve` | 待复核定位稿的查询与人工受理/驳回 |
 
 ---
 
@@ -219,8 +231,8 @@ curl -s "$BASE/events/1/anchors" -H "$KEY" | python -m json.tool
 
 ```
 samples/
-  index.json            五个场景的概要
-  <scenario>/truth.json 台站位置、每 boot 真值时钟模型、校准声源时刻、上传波次、真实事件
+  index.json            七个场景的概要
+  <scenario>/truth.json 台站位置（含注册坐标偏移）、每 boot 真值时钟模型、校准声源时刻、上传波次、真实事件
 ```
 
 `truth.json` 中的 `waves[].records` 就是模拟器实际 POST 的载荷；`waves[].truth` 记录每条
@@ -254,6 +266,15 @@ samples/
 5. **revision** — 先无 S3 数据跑一次，再补传 S3 与迟到校准后跑修订；要求旧事件被取代、
    新事件指名被取代者，而不是一次活动悄悄裂成两条。
 
+两个故障归因场景（第 7.5 节的服务对象）：
+
+6. **diagnosis** — 三种故障并存：S1 时钟在 boot 晚期阶跃 +180 ms（各方向同向残差）、
+   S2 测点向西误记 80 m（残差随方向反转）、区域真实声速 328 m/s 而基线仍为 343（残差随
+   距离增长），并向 S3 注入一个 900 ms 异常锚点；要求正确归因、异常排除留前后证据、
+   区域共享速度可恢复。
+7. **sparse_anchors** — 每站仅 4 个校准锚点，无法形成留出分区；要求所有假设都被认证
+   门禁拒绝，定位数据集收不到任何认证参数。
+
 ---
 
 ## 7. 算法要点与已知边界
@@ -285,11 +306,67 @@ samples/
 
 - 只承诺**既定网格精度内的候选区域**，不做精确反演，也不做统计置信区间。
 - 两个站点的记录永远不构成"确定坐标"；共线布局永远返回镜像区域。
-- 传播速度取配置常数，不做温度/风场修正；这是题目给定的简化模型。
+- 常规定位的传播速度取配置常数；只有**已认证**的区域速度参数才会改变定位速度，
+  诊断本身不修改任何定位输入。
 - 校准不合格的观测被**保留但不参与**归并，接口可按 `calibration_status` 回查原因。
 - 迟报记录不会追溯修改已定稿事件本身，而是通过下一次运行的修订关系表达。
+- 诊断层在管线校准被拒时自建的时钟趋势仅用于产生证据残差，带
+  `mapping_source=diagnostic_clock_trend` 标注，永不冒充已认证时钟模型。
+- 留不出 holdout 分区、留出 RMSE 恶化、参数不可识别或 boot 版本冲突时，认证簿一律
+  拒绝发布，宁可不签发参数也不把残差强行修到单一参数上。
+- 区域式组织中方向覆盖不足的站点暂时拿不到局部修正；单站式组织的跨站速度离散度会
+  显式提示"区域变化被吸收进设备参数"的风险，两种组织始终并列对比、不互相覆盖。
+- 已人工确认事件受参数修订影响时只生成待复核稿，原始事件行不改写；本服务不派发工单、
+  不改动现场设备。
 - `/runs` 支持 `wait=false` 后台执行以便观察中断（`debug_stop_after_phase`），
   生产使用建议 `wait=true` 或外部任务队列。
+
+---
+
+## 7.5 校准假设诊断与参数认证（故障归因）
+
+常规时钟校准把每个残差都归因于台站时钟。维护人员需要进一步判断残差究竟来自
+**时钟偏移/漂移**、**测点坐标误记**还是**区域传播速度变化**，避免把所有误差强行修到
+一个参数上而让后续定位系统性偏移。本服务为此提供独立的四层结构：
+
+1. **校准证据库**（`diagnostic_evidence`）：每次诊断把声源位置、发声时刻、站点记录
+   测点、参考/实测到达、传播时延、方向角与 boot 身份冻结成独立快照；管线校准被拒的
+   boot 会在诊断层内拟合带标注的稳健时钟趋势（`mapping_source` 区分两种来源），不会
+   因为没有有效校准而丢失证据。
+2. **假设册**（`hypotheses`）：同一批锚点上并行维护三类可识别假设——
+   - 时钟 `clock`：仿射偏移/漂移，并在锚点时间分位上搜索**时钟阶跃**（连续仿射模型
+     无法表达的跳变，是时钟独有的可识别信号）；
+   - 坐标 `coordinate`：`r·v = u·shift` 的测点位移，要求多方向覆盖与设计矩阵良态；
+   - 区域速度 `propagation_speed`：`r_seconds = k·distance` 的共享速度，可联合估计
+     各站时钟截距；另有 `clock_coordinate` 联合模型作为对照。
+3. **留出验证器**：按 (station, boot) 确定性分层把锚点划分为 fit/holdout，所有假设只
+   在 fit 上拟合、在同一批未参与拟合的 holdout 上评分。方向规则（任务原文要求）参与
+   排名：各方向同向优先评估时钟、残差随方向反转则判定单一时钟修正不足而优先坐标、
+   残差随距离显著相关则指向传播速度，其余情形按留出 RMSE 排序。
+4. **认证簿**（`certifications` / `certified_parameters`）：只有通过三道机械门禁的假设
+   才能发布给定位数据集——
+   - 可识别门禁：锚点跨度、方向覆盖、设计条件数、物理取值范围；
+   - 留出门禁：新拟合在未触碰锚点上不得比基线相对恶化超过 15%，且绝对 RMSE 不超过
+     150 ms；留出锚点不足时直接拒绝；
+   - boot 版本门禁：设备参数按 boot 隔离，旧 boot 的迟到拟合不得覆盖新 boot 已认证
+     参数（boot 顺序以证据库参考到达时刻为准，因为本地时钟读数在重启时会跳变）。
+
+**两种参数组织方式都在同一留出集和同一批定位事件上对比**：
+
+- 单站式（`per_station`）：每站独立估计时钟与坐标，局部残差易定位、锚点稀疏也能先行
+  处理；风险是区域传播变化会被吸收为各站的伪设备参数（诊断结果中的跨站速度离散度会
+  暴露这一点）。
+- 区域式（`regional`）：先估计一个共享传播速度，再仅对方向覆盖充分的站点追加局部坐标
+  修正；跨站口径一致，但覆盖不足的站点暂时**不签发**局部参数。
+
+**异常锚点**仅在 fit 分区做稳健 σ 截断，holdout 永不参与剔除；排除前后的 fit/holdout
+表现与逐条排除理由都写进诊断结果和证据行。**人工确认过的事件**若受参数修订影响，只
+生成 `localization_review_drafts` 待复核稿（含前后位置/发声/残差对比），原始事件行
+绝不改写；未确认事件只记录受影响版本号。本服务不派发工单、不改动现场设备。
+
+核心模块：`app/diagnostics.py`（证据、划分、拟合、方向分析、两组织对比）、
+`app/certification.py`（门禁、版本、事件影响、待复核稿）、`app/certified.py`（向定位
+数据集的受控交付）。
 
 ---
 
@@ -300,28 +377,31 @@ app/
   main.py          FastAPI 应用、鉴权中间件、OpenAPI 定制
   api.py           全部路由
   schemas.py       Pydantic 请求/响应
-  models.py        SQLAlchemy 表结构
+  models.py        SQLAlchemy 表结构（含证据库、假设册、认证簿、待复核稿）
   db.py            引擎与会话
   config.py        全部可调阈值（会写入每次运行的快照）
   timeutil.py      整数微秒时间工具
   ingest.py        上传、去重、冲突、进度
   calibration.py   锚点解析与分段线性时钟校准
+  diagnostics.py   假设诊断：证据冻结、留出划分、时钟/坐标/速度拟合、方向分析
+  certification.py 认证门禁、boot 版本控制、事件影响与待复核稿
+  certified.py     认证参数向定位数据集的受控交付
   localize.py      粗到细网格搜索与候选区域
   physics.py       传播时延与相容性原语
   association.py   候选团枚举
   solver.py        互斥集合划分求解与并列检测
   pipeline.py      阶段化处理、检查点、定稿、修订
 simulator/
-  scenarios.py     五个虚构场景与每个 boot 的时钟模型
+  scenarios.py     七个虚构场景与每个 boot 的时钟模型
   run_simulator.py 真值生成、可暂停的分波上传、重放/冲突注入
 verifier/
   verify.py        独立前向模型校验器（不引用 app/）
 scripts/
-  demo.sh          一键演示 + 自检
+  demo.sh          七场景一键演示 + 自检
   generate_samples.py
   export_openapi.py
-tests/             59 个用例（导入、校准、定位、关联、求解、流水线、校验器、接口契约）
-samples/           五个场景的真值文件
+tests/             82 个用例（校准、定位、关联、求解、流水线、校验器、接口契约、诊断、认证）
+samples/           七个场景的真值文件
 openapi.json       导出的 OpenAPI 3.1 文档
 Dockerfile / docker-compose.yml
 ```
@@ -346,3 +426,12 @@ Dockerfile / docker-compose.yml
 | `MIN_EVENT_STATIONS` | `2` | 事件最少台站数 |
 | `MAX_SOLUTION_OPTIONS` | `5` | 并列/备选分解上限 |
 | `HEARING_RADIUS_M` / `PROGRESS_MARGIN_S` | `1600` / `120` | 定稿判定 |
+| `DIAG_HOLDOUT_FRACTION` / `DIAG_MIN_HOLDOUT` | `0.25` / `2` | 留出锚点比例与最少数量 |
+| `DIAG_MIN_FIT_ANCHORS` / `DIAG_MIN_ANCHOR_SPAN_S` | `4` / `60` | 假设拟合的最少锚点与最短跨度 |
+| `DIAG_MIN_DIRECTIONS` / `DIAG_SAME_SIGN_FRACTION` | `3` / `0.75` | 方向扇区数与时钟偏移同向阈值 |
+| `DIAG_REVERSAL_RATIO` / `DIAG_DISTANCE_CORRELATION` | `0.6` / `0.7` | 方向反转与距离相关判据 |
+| `DIAG_OUTLIER_SIGMA` / `DIAG_MIN_STEP_MS` | `3.5` / `30` | 异常锚点截断与时钟阶跃最小幅度 |
+| `DIAG_SPEED_MIN_MPS` / `DIAG_SPEED_MAX_MPS` | `300` / `400` | 区域速度可识别的合理区间 |
+| `DIAG_HOLDOUT_ABS_LIMIT_MS` / `DIAG_HOLDOUT_IMPROVEMENT_RATIO` | `150` / `0.1` | 留出绝对上限与实质性改善比例 |
+| `CERT_HOLDOUT_WORSEN_RATIO` | `1.15` | 认证允许的留出相对恶化倍数 |
+| `CERT_STALE_MAX_AGE_S` | `2592000`（30 天） | 拟合证据相对 cutoff 的过期上限 |

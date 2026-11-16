@@ -3,6 +3,7 @@
   "title": "Collinear stations cannot resolve the mirror pair",
   "description": "All four stations lie exactly on y = 500 m. Reflection across that line leaves every propagation delay unchanged, so a call at (900, 180) is timing-indistinguishable from one at (900, 820). The service must return both disconnected feasible regions and must not report one coordinate. Counting is unaffected: each call is still one event.",
   "propagation_speed_mps": 343.0,
+  "baseline_service_speed_mps": 343.0,
   "area": {
     "x_min": 0.0,
     "x_max": 2200.0,
@@ -14,6 +15,12 @@
       "id": "S1",
       "x": 150.0,
       "y": 500.0,
+      "registered_x": 150.0,
+      "registered_y": 500.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
       "hearing_radius_m": 1900.0,
       "late": false,
       "boots": [
@@ -24,7 +31,10 @@
           "drift_ppm": 35.0,
           "slope": 1.000035,
           "intercept_us": -1793515611378000.0,
-          "reboot_reason": null
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
         }
       ]
     },
@@ -32,6 +42,12 @@
       "id": "S2",
       "x": 750.0,
       "y": 500.0,
+      "registered_x": 750.0,
+      "registered_y": 500.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
       "hearing_radius_m": 1900.0,
       "late": false,
       "boots": [
@@ -42,7 +58,10 @@
           "drift_ppm": 35.0,
           "slope": 1.000035,
           "intercept_us": -1793515611378000.0,
-          "reboot_reason": null
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
         }
       ]
     },
@@ -50,6 +69,12 @@
       "id": "S3",
       "x": 1350.0,
       "y": 500.0,
+      "registered_x": 1350.0,
+      "registered_y": 500.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
       "hearing_radius_m": 1900.0,
       "late": false,
       "boots": [
@@ -60,7 +85,10 @@
           "drift_ppm": 35.0,
           "slope": 1.000035,
           "intercept_us": -1793515611378000.0,
-          "reboot_reason": null
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
         }
       ]
     },
@@ -68,6 +96,12 @@
       "id": "S4",
       "x": 1950.0,
       "y": 500.0,
+      "registered_x": 1950.0,
+      "registered_y": 500.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
       "hearing_radius_m": 1900.0,
       "late": false,
       "boots": [
@@ -78,7 +112,10 @@
           "drift_ppm": 35.0,
           "slope": 1.000035,
           "intercept_us": -1793515611378000.0,
-          "reboot_reason": null
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
         }
       ]
     }

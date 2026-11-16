@@ -386,3 +386,213 @@ class StatsSummary(BaseModel):
     runs: dict
     events: dict
     latest_run: RunOut | None
+
+
+# --------------------------------------------------------------------------- #
+# Hypothesis diagnostics & certification
+# --------------------------------------------------------------------------- #
+class PropagationRegionCreate(JsonModel):
+    id: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_.-]+$")
+    name: str = Field(min_length=1, max_length=200)
+    x_min: float
+    x_max: float
+    y_min: float
+    y_max: float
+    baseline_speed_mps: float = Field(gt=50, le=2000)
+    notes: str | None = None
+
+    @model_validator(mode="after")
+    def _bounds_ordered(self):
+        if self.x_max <= self.x_min or self.y_max <= self.y_min:
+            raise ValueError("region must have positive width and height")
+        return self
+
+
+class PropagationRegionOut(BaseModel):
+    id: str
+    name: str
+    x_min: float
+    x_max: float
+    y_min: float
+    y_max: float
+    baseline_speed_mps: float
+    active: bool
+    notes: str | None
+    created_at: str
+
+
+class DiagnosticRunCreate(JsonModel):
+    scope_type: Literal["station", "region"]
+    station_id: str | None = Field(default=None, max_length=64)
+    region_id: str | None = Field(default=None, max_length=64)
+    organization: Literal["per_station", "regional", "both"] = "both"
+    created_by: str | None = Field(default=None, max_length=128)
+
+    @model_validator(mode="after")
+    def _scope_consistent(self):
+        if self.scope_type == "station" and not self.station_id:
+            raise ValueError("station scope requires station_id")
+        if self.scope_type == "region" and not self.region_id:
+            raise ValueError("region scope requires region_id")
+        return self
+
+
+class DiagnosticRunOut(BaseModel):
+    id: int
+    batch_id: str
+    scope_type: str
+    station_id: str | None
+    region_id: str | None
+    organization: str
+    cutoff: str
+    baseline_speed_mps: float
+    boot_ids: list[str]
+    station_ids: list[str]
+    fit_anchor_count: int
+    holdout_anchor_count: int
+    excluded_anchor_ids: list[int]
+    status: str
+    error: str | None
+    created_by: str | None
+    created_at: str
+    finished_at: str | None
+    diagnosis: dict | None = None
+
+
+class HypothesisOut(BaseModel):
+    id: int
+    code: str
+    diagnostic_run_id: int
+    organization: str
+    hypothesis_type: str
+    station_id: str | None
+    boot_id: str | None
+    region_id: str | None
+    status: str
+    preference_rank: int | None
+    preference_reason: str | None
+    identifiable: bool
+    identifiability: dict
+    params: dict
+    fit_metrics: dict
+    holdout_metrics: dict
+    direction_analysis: dict | None
+    calibration_version_hash: str | None
+    created_at: str
+
+
+class DiagnosticEvidenceOut(BaseModel):
+    id: int
+    diagnostic_run_id: int
+    station_id: str
+    boot_id: str
+    observation_id: int
+    calibration_source_id: str
+    source_x: float
+    source_y: float
+    station_x: float
+    station_y: float
+    emission: str
+    distance_m: float
+    direction_rad: float
+    propagation_ms: float
+    reference_arrival: str
+    local_capture: str
+    detrended_residual_ms: float
+    mapping_source: str
+    partition: str
+    excluded: bool
+    exclusion_reason: str | None
+
+
+class CertificationDecisionRequest(JsonModel):
+    decided_by: str = Field(default="maintainer", min_length=1, max_length=128)
+
+
+class CertificationOut(BaseModel):
+    id: int
+    cert_code: str
+    hypothesis_id: int
+    diagnostic_run_id: int
+    parameter_type: str
+    station_id: str | None
+    boot_id: str | None
+    region_id: str | None
+    status: str
+    decision_reason: str | None
+    gates: list[dict]
+    holdout_comparison: dict
+    exclusion_comparison: dict | None
+    identifiability: dict
+    params: dict
+    version: int
+    supersedes_certification_id: int | None
+    decided_by: str | None
+    created_at: str
+    decided_at: str | None
+
+
+class CertifiedParameterOut(BaseModel):
+    id: int
+    certification_id: int
+    parameter_type: str
+    station_id: str | None
+    boot_id: str | None
+    region_id: str | None
+    params: dict
+    identifiability: dict
+    affected_event_versions: list
+    handoff: dict
+    active: bool
+    valid_from: str
+    valid_to: str | None
+    version: int
+    created_at: str
+
+
+class EventConfirmationCreate(JsonModel):
+    confirmed_by: str = Field(min_length=1, max_length=128)
+    note: str | None = Field(default=None, max_length=2000)
+
+
+class EventConfirmationOut(BaseModel):
+    id: int
+    event_id: int
+    confirmed_by: str
+    note: str | None
+    created_at: str
+
+
+class EventParameterImpactOut(BaseModel):
+    id: int
+    certification_id: int
+    event_id: int
+    event_revision: int
+    event_status_at_impact: str
+    human_confirmed: bool
+    action: str
+    reason: str | None
+    review_draft_id: int | None
+    created_at: str
+
+
+class ReviewDraftOut(BaseModel):
+    id: int
+    certification_id: int
+    source_event_id: int
+    status: str
+    params_snapshot: dict
+    before: dict
+    after: dict
+    delta: dict
+    reason: str | None
+    resolved: bool
+    resolution_note: str | None
+    created_at: str
+    updated_at: str
+
+
+class ReviewDraftResolveRequest(JsonModel):
+    resolution: Literal["accepted", "rejected"]
+    note: str | None = Field(default=None, max_length=2000)
+    resolved_by: str = Field(default="investigator", min_length=1, max_length=128)

@@ -3,6 +3,7 @@
   "title": "Late report and calibration revision produce event revisions",
   "description": "The first run happens before S3's backfill and before the late calibration anchors arrive. It publishes provisional events without S3. The second run sees S3's records and a revised calibration, so events that now include S3 are published as revisions naming the events they supersede: no activity is silently split into two while the old count remains.",
   "propagation_speed_mps": 343.0,
+  "baseline_service_speed_mps": 343.0,
   "area": {
     "x_min": -300.0,
     "x_max": 2000.0,
@@ -14,6 +15,12 @@
       "id": "S1",
       "x": 350.0,
       "y": 150.0,
+      "registered_x": 350.0,
+      "registered_y": 150.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
       "hearing_radius_m": 1600.0,
       "late": false,
       "boots": [
@@ -24,7 +31,10 @@
           "drift_ppm": 35.0,
           "slope": 1.000035,
           "intercept_us": -1793515611378000.0,
-          "reboot_reason": null
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
         }
       ]
     },
@@ -32,6 +42,12 @@
       "id": "S2",
       "x": 1300.0,
       "y": 300.0,
+      "registered_x": 1300.0,
+      "registered_y": 300.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
       "hearing_radius_m": 1600.0,
       "late": false,
       "boots": [
@@ -42,7 +58,10 @@
           "drift_ppm": 35.0,
           "slope": 1.000035,
           "intercept_us": -1793515611378000.0,
-          "reboot_reason": null
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
         }
       ]
     },
@@ -50,6 +69,12 @@
       "id": "S3",
       "x": 800.0,
       "y": 1000.0,
+      "registered_x": 800.0,
+      "registered_y": 1000.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
       "hearing_radius_m": 1600.0,
       "late": true,
       "boots": [
@@ -60,7 +85,10 @@
           "drift_ppm": 35.0,
           "slope": 1.000035,
           "intercept_us": -1793515611378000.0,
-          "reboot_reason": null
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
         }
       ]
     },
@@ -68,6 +96,12 @@
       "id": "S4",
       "x": 550.0,
       "y": 820.0,
+      "registered_x": 550.0,
+      "registered_y": 820.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
       "hearing_radius_m": 1500.0,
       "late": false,
       "boots": [
@@ -78,7 +112,10 @@
           "drift_ppm": 35.0,
           "slope": 1.000035,
           "intercept_us": -1793515611378000.0,
-          "reboot_reason": null
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
         }
       ]
     }

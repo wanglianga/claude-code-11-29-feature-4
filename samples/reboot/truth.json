@@ -3,6 +3,7 @@
   "title": "Station restart with a clock jump and a late backfill",
   "description": "S2 restarted at t=900 s; its clock jumped by 1500 s and its drift changed sign. S3 was offline and needs to upload records 20 minutes after the others. Arrival order and wall-clock elapsed time must not enter the association: only per-boot calibrated reference time counts, and a station without a complete progress report keeps its events provisional.",
   "propagation_speed_mps": 343.0,
+  "baseline_service_speed_mps": 343.0,
   "area": {
     "x_min": -400.0,
     "x_max": 2200.0,
@@ -14,6 +15,12 @@
       "id": "S1",
       "x": 200.0,
       "y": 250.0,
+      "registered_x": 200.0,
+      "registered_y": 250.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
       "hearing_radius_m": 2600.0,
       "late": false,
       "boots": [
@@ -24,7 +31,10 @@
           "drift_ppm": 35.0,
           "slope": 1.000035,
           "intercept_us": -1793515611378000.0,
-          "reboot_reason": null
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
         }
       ]
     },
@@ -32,6 +42,12 @@
       "id": "S2",
       "x": 1250.0,
       "y": 100.0,
+      "registered_x": 1250.0,
+      "registered_y": 100.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
       "hearing_radius_m": 1800.0,
       "late": false,
       "boots": [
@@ -42,7 +58,10 @@
           "drift_ppm": 60.0,
           "slope": 1.00006,
           "intercept_us": -1793560476648000.0,
-          "reboot_reason": null
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
         },
         {
           "boot_id": "b2",
@@ -51,7 +70,10 @@
           "drift_ppm": -45.0,
           "slope": 0.999955,
           "intercept_us": -1793374142311500.0,
-          "reboot_reason": "power cycle; supercapacitor-backed RTC lost 1500 s"
+          "reboot_reason": "power cycle; supercapacitor-backed RTC lost 1500 s",
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
         }
       ]
     },
@@ -59,6 +81,12 @@
       "id": "S3",
       "x": 1200.0,
       "y": 900.0,
+      "registered_x": 1200.0,
+      "registered_y": 900.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
       "hearing_radius_m": 2600.0,
       "late": true,
       "boots": [
@@ -69,7 +97,10 @@
           "drift_ppm": 35.0,
           "slope": 1.000035,
           "intercept_us": -1793515611378000.0,
-          "reboot_reason": null
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
         }
       ]
     },
@@ -77,6 +108,12 @@
       "id": "S4",
       "x": 380.0,
       "y": 880.0,
+      "registered_x": 380.0,
+      "registered_y": 880.0,
+      "registered_offset_m": {
+        "dx": 0.0,
+        "dy": 0.0
+      },
       "hearing_radius_m": 2600.0,
       "late": false,
       "boots": [
@@ -87,7 +124,10 @@
           "drift_ppm": 35.0,
           "slope": 1.000035,
           "intercept_us": -1793515611378000.0,
-          "reboot_reason": null
+          "reboot_reason": null,
+          "extra_offset_us": 0.0,
+          "offset_step_s": null,
+          "offset_step_us": 0.0
         }
       ]
     }

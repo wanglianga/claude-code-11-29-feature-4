@@ -82,6 +82,10 @@ def forward_local_us(
 def check_upload_consistency(truth: dict) -> tuple[list[Check], dict]:
     """Every uploaded calibration/sound record must match the forward model."""
     checks: list[Check] = []
+    # Fault scenarios deliberately inject anomalies (outlier anchors, clock
+    # steps, coordinate errors, regional speed), so the tolerance is a scenario
+    # property; the default keeps the strict 20 ms bound used by clean runs.
+    tolerance_us = float(truth.get("expected", {}).get("forward_model_tolerance_ms", 20.0)) * 1000.0
     worst = 0.0
     worst_desc = ""
     count = 0
@@ -109,12 +113,14 @@ def check_upload_consistency(truth: dict) -> tuple[list[Check], dict]:
             count += 1
             if error_us > worst:
                 worst, worst_desc = error_us, f"{wave['station_id']}/{rec['source_seq']}"
-    # Anchor noise is 4 ms sigma; sound records are exact apart from integer rounding.
+    # Anchor noise is 4 ms sigma on clean scenarios; fault scenarios widen the
+    # documented tolerance to cover their intentionally injected anomalies.
     checks.append(
         Check(
             "forward-model reproduces uploaded local timestamps",
-            worst <= 20_000,
-            f"{count} records, worst |error| = {worst / 1000.0:.2f} ms at {worst_desc}",
+            worst <= tolerance_us,
+            f"{count} records, worst |error| = {worst / 1000.0:.2f} ms at {worst_desc} "
+            f"(tolerance {tolerance_us / 1000.0:.0f} ms)",
         )
     )
     return checks, {"records_checked": count, "worst_error_us": worst}
@@ -386,6 +392,143 @@ def check_revisions(truth: dict) -> tuple[list[Check], dict]:
     return checks, {"superseded": len(superseded)}
 
 
+def check_diagnostic_attribution(truth: dict) -> list[Check]:
+    """Independent checks for the clock/coordinate/speed fault scenario.
+
+    The checker only reads the service's hypothesis register and certification
+    book and compares them against the fault parameters recorded in
+    ``truth.json``; it never imports service code.
+    """
+    base = events_client_base
+    headers = {"X-API-Key": _api_key}
+    checks: list[Check] = []
+    expected = truth.get("expected", {})
+
+    def station_diagnosis(station_id: str) -> dict:
+        runs = requests.get(
+            f"{base}/diagnostic-runs",
+            headers=headers,
+            params={"scope_type": "station", "station_id": station_id},
+            timeout=30,
+        ).json()
+        assert runs, f"no diagnostic run for {station_id}"
+        return runs[0]["diagnosis"]["organizations"]["per_station"]["stations"][0]
+
+    # 1. Clock step on the offset station.
+    clock_station = expected.get("clock_offset_station")
+    if clock_station:
+        summary = station_diagnosis(clock_station)
+        clock = next(h for h in summary["hypotheses"] if h["type"] == "clock")
+        detail = requests.get(
+            f"{base}/hypotheses/{clock['hypothesis_id']}", headers=headers, timeout=30
+        ).json()
+        step_ms = detail["params"].get("step_ms")
+        checks.append(
+            Check(
+                "clock fault is attributed to a temporal clock step hypothesis",
+                clock["rank"] == 1 and step_ms is not None
+                and abs(step_ms - 180.0) <= expected.get("clock_offset_min_ms", 30.0) + 30.0,
+                f"{clock_station} clock rank={clock['rank']}, fitted step={step_ms} ms (truth 180 ms)",
+            )
+        )
+
+    # 2. Coordinate shift recovery.
+    coord_station = expected.get("coordinate_station")
+    if coord_station:
+        summary = station_diagnosis(coord_station)
+        coord = next(h for h in summary["hypotheses"] if h["type"] == "coordinate")
+        detail = requests.get(
+            f"{base}/hypotheses/{coord['hypothesis_id']}", headers=headers, timeout=30
+        ).json()
+        shift = detail["params"].get("shift_m", 0.0)
+        checks.append(
+            Check(
+                "mis-recorded coordinate is attributed to the coordinate hypothesis",
+                coord["rank"] == 1 and shift >= expected.get("coordinate_shift_min_m", 50.0),
+                f"{coord_station} coordinate rank={coord['rank']}, recovered shift={shift:.1f} m",
+            )
+        )
+
+    # 3. Outlier exclusion with before/after evidence.
+    outlier_station = expected.get("outlier_station")
+    if outlier_station:
+        runs = requests.get(
+            f"{base}/diagnostic-runs",
+            headers=headers,
+            params={"scope_type": "station", "station_id": outlier_station},
+            timeout=30,
+        ).json()
+        exclusion = runs[0]["diagnosis"]["outlier_exclusion"]
+        before = exclusion.get("holdout_before_exclusion", {})
+        checks.append(
+            Check(
+                "anomalous anchor is excluded with before/after hold-out evidence",
+                exclusion.get("excluded_count", 0) >= 1 and before.get("n", 0) > 0,
+                f"{outlier_station} excluded {exclusion.get('excluded_count')} anchor(s); "
+                f"hold-out before-exclusion n={before.get('n')}",
+            )
+        )
+
+    # 4. Regional shared speed.
+    region_runs = requests.get(
+        f"{base}/diagnostic-runs", headers=headers,
+        params={"scope_type": "region"}, timeout=30,
+    ).json()
+    speed_bounds = expected.get("regional_speed_between_mps")
+    if region_runs and speed_bounds:
+        regional = region_runs[0]["diagnosis"]["organizations"]["regional"]
+        speed = regional.get("speed", {}).get("speed_mps")
+        checks.append(
+            Check(
+                "regional propagation speed is recovered by the shared model",
+                regional.get("speed_identifiable") is True
+                and speed_bounds[0] <= speed <= speed_bounds[1],
+                f"fitted regional speed={speed} m/s, expected within {speed_bounds}",
+            )
+        )
+        # Both organisations must score the same events.
+        validated = region_runs[0]["diagnosis"].get("event_validation", [])
+        checks.append(
+            Check(
+                "both parameter organisations validate the same localisation events",
+                bool(validated)
+                and all({"baseline", "per_station", "regional"} <= set(row) for row in validated),
+                f"{len(validated)} events scored under baseline/per_station/regional",
+            )
+        )
+    return checks
+
+
+def check_sparse_certification_blocked(truth: dict) -> list[Check]:
+    """Insufficient anchors must leave every hypothesis non-certifiable."""
+    base = events_client_base
+    headers = {"X-API-Key": _api_key}
+    certified = requests.get(
+        f"{base}/certified-parameters", headers=headers, timeout=30
+    ).json()
+    runs = requests.get(
+        f"{base}/diagnostic-runs", headers=headers, timeout=30
+    ).json()
+    enough = [
+        r for r in runs
+        if r["diagnosis"]["partition"].get("enough_holdout") is True
+    ]
+    return [
+        Check(
+            "sparse anchors form no certifiable hold-out partition",
+            all(
+                r["diagnosis"]["partition"].get("enough_holdout") is False for r in runs
+            ) and bool(runs),
+            f"{len(runs)} diagnostic run(s), none with a sufficient hold-out partition",
+        ),
+        Check(
+            "certification book publishes no parameter when anchors are insufficient",
+            certified == [] and not enough,
+            f"{len(certified)} active certified parameter(s)",
+        ),
+    ]
+
+
 def run_checks(
     scenario: str,
     truth_path: Path,
@@ -408,6 +551,20 @@ def run_checks(
     checks: list[Check] = []
     upload_checks, upload_summary = check_upload_consistency(truth)
     checks.extend(upload_checks)
+
+    # The fault scenarios deliberately break the clean clock/geometry
+    # assumptions behind the generic event-position checks, so they are
+    # verified against their own attribution/certification expectations.
+    if scenario == "diagnosis":
+        checks.extend(check_diagnostic_attribution(truth))
+        checks.append(check_no_double_counting(truth, events))
+        _emit(scenario, truth, checks, upload_summary, truth_path)
+        return 0 if all(c.ok for c in checks) else 1
+    if scenario == "sparse_anchors":
+        checks.extend(check_sparse_certification_blocked(truth))
+        _emit(scenario, truth, checks, upload_summary, truth_path)
+        return 0 if all(c.ok for c in checks) else 1
+
     event_checks, _ = check_event_matching(truth, events, collinear)
     checks.extend(event_checks)
     checks.append(check_no_double_counting(truth, events))
@@ -437,6 +594,12 @@ def run_checks(
                 "all 'certain' events have a bounding box <= 250 m",
             )
         )
+    _emit(scenario, truth, checks, upload_summary, truth_path)
+    return 0 if all(c.ok for c in checks) else 1
+
+
+def _emit(scenario: str, truth: dict, checks: list[Check], upload_summary: dict,
+          truth_path: Path) -> None:
     print(f"\n=== Verification: {scenario} ({truth['title']}) ===")
     for check in checks:
         print(" ", check)
@@ -452,7 +615,6 @@ def run_checks(
     }
     out = truth_path.parent / "verification.json"
     out.write_text(json.dumps(payload, indent=2))
-    return 0 if not failed else 1
 
 
 def main(argv: list[str] | None = None) -> int:

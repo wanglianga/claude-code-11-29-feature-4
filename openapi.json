@@ -1641,6 +1641,1192 @@
           }
         ]
       }
+    },
+    "/propagation-regions": {
+      "get": {
+        "tags": [
+          "diagnostics"
+        ],
+        "summary": "List regional propagation model applicability regions",
+        "operationId": "list_propagation_regions_propagation_regions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PropagationRegionOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Propagation Regions Propagation Regions Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "diagnostics"
+        ],
+        "summary": "Define an applicability region for a regional propagation model",
+        "operationId": "create_propagation_region_propagation_regions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropagationRegionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropagationRegionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/diagnostic-runs": {
+      "post": {
+        "tags": [
+          "diagnostics"
+        ],
+        "summary": "Run a calibration fault-attribution diagnosis with hold-out validation",
+        "operationId": "create_diagnostic_run_diagnostic_runs_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiagnosticRunCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticRunOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "diagnostics"
+        ],
+        "summary": "List calibration hypothesis diagnostic runs",
+        "operationId": "list_diagnostic_runs_diagnostic_runs_get",
+        "parameters": [
+          {
+            "name": "scope_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Scope Type"
+            }
+          },
+          {
+            "name": "station_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Station Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiagnosticRunOut"
+                  },
+                  "title": "Response List Diagnostic Runs Diagnostic Runs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/diagnostic-runs/{run_id}": {
+      "get": {
+        "tags": [
+          "diagnostics"
+        ],
+        "summary": "Fetch one diagnostic run with its full diagnosis",
+        "operationId": "get_diagnostic_run_diagnostic_runs__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticRunOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/diagnostic-runs/{run_id}/evidence": {
+      "get": {
+        "tags": [
+          "diagnostics"
+        ],
+        "summary": "Inspect the frozen calibration evidence library of a diagnostic run",
+        "operationId": "diagnostic_run_evidence_diagnostic_runs__run_id__evidence_get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "partition",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(fit|holdout)$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Partition"
+            }
+          },
+          {
+            "name": "excluded",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Excluded"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DiagnosticEvidenceOut"
+                  },
+                  "title": "Response Diagnostic Run Evidence Diagnostic Runs  Run Id  Evidence Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/hypotheses": {
+      "get": {
+        "tags": [
+          "diagnostics"
+        ],
+        "summary": "List the hypothesis register (clock, coordinate, speed)",
+        "operationId": "list_hypotheses_hypotheses_get",
+        "parameters": [
+          {
+            "name": "diagnostic_run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Diagnostic Run Id"
+            }
+          },
+          {
+            "name": "station_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Station Id"
+            }
+          },
+          {
+            "name": "boot_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Boot Id"
+            }
+          },
+          {
+            "name": "hypothesis_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Hypothesis Type"
+            }
+          },
+          {
+            "name": "organization",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Organization"
+            }
+          },
+          {
+            "name": "identifiable",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Identifiable"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 2000,
+              "minimum": 1,
+              "default": 200,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HypothesisOut"
+                  },
+                  "title": "Response List Hypotheses Hypotheses Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/hypotheses/{hypothesis_id}": {
+      "get": {
+        "tags": [
+          "diagnostics"
+        ],
+        "summary": "Fetch one hypothesis with fit and hold-out metrics",
+        "operationId": "get_hypothesis_hypotheses__hypothesis_id__get",
+        "parameters": [
+          {
+            "name": "hypothesis_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Hypothesis Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HypothesisOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/hypotheses/{hypothesis_id}/certify": {
+      "post": {
+        "tags": [
+          "certification"
+        ],
+        "summary": "Approve or reject a hypothesis through the certification gates",
+        "operationId": "certify_hypothesis_hypotheses__hypothesis_id__certify_post",
+        "parameters": [
+          {
+            "name": "hypothesis_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Hypothesis Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CertificationDecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificationOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/certifications": {
+      "get": {
+        "tags": [
+          "certification"
+        ],
+        "summary": "List certification book entries (approved and rejected)",
+        "operationId": "list_certifications_certifications_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(approved|rejected|pending)$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "parameter_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Parameter Type"
+            }
+          },
+          {
+            "name": "station_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Station Id"
+            }
+          },
+          {
+            "name": "region_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Region Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 200,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CertificationOut"
+                  },
+                  "title": "Response List Certifications Certifications Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/certifications/{certification_id}": {
+      "get": {
+        "tags": [
+          "certification"
+        ],
+        "summary": "Fetch one certification record with every gate result",
+        "operationId": "get_certification_certifications__certification_id__get",
+        "parameters": [
+          {
+            "name": "certification_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Certification Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificationOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/certifications/{certification_id}/impacts": {
+      "get": {
+        "tags": [
+          "certification"
+        ],
+        "summary": "List the affected event versions of one certification",
+        "operationId": "certification_impacts_certifications__certification_id__impacts_get",
+        "parameters": [
+          {
+            "name": "certification_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Certification Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EventParameterImpactOut"
+                  },
+                  "title": "Response Certification Impacts Certifications  Certification Id  Impacts Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/certified-parameters": {
+      "get": {
+        "tags": [
+          "certification"
+        ],
+        "summary": "Parameters handed to the localisation dataset (active certifications)",
+        "operationId": "list_certified_parameters_certified_parameters_get",
+        "parameters": [
+          {
+            "name": "active_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Active Only"
+            }
+          },
+          {
+            "name": "parameter_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Parameter Type"
+            }
+          },
+          {
+            "name": "station_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Station Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CertifiedParameterOut"
+                  },
+                  "title": "Response List Certified Parameters Certified Parameters Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/events/{event_id}/confirmations": {
+      "post": {
+        "tags": [
+          "certification"
+        ],
+        "summary": "Record a human investigator's confirmation of an event",
+        "operationId": "confirm_event_events__event_id__confirmations_post",
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventConfirmationCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventConfirmationOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "certification"
+        ],
+        "summary": "List human confirmations recorded for an event",
+        "operationId": "list_event_confirmations_events__event_id__confirmations_get",
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Event Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EventConfirmationOut"
+                  },
+                  "title": "Response List Event Confirmations Events  Event Id  Confirmations Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/review-drafts": {
+      "get": {
+        "tags": [
+          "certification"
+        ],
+        "summary": "List pending re-localisation drafts (never auto-applied to confirmed events)",
+        "operationId": "list_review_drafts_review_drafts_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "resolved",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Resolved"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 200,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReviewDraftOut"
+                  },
+                  "title": "Response List Review Drafts Review Drafts Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/review-drafts/{draft_id}": {
+      "get": {
+        "tags": [
+          "certification"
+        ],
+        "summary": "Fetch one re-localisation review draft",
+        "operationId": "get_review_draft_review_drafts__draft_id__get",
+        "parameters": [
+          {
+            "name": "draft_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Draft Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewDraftOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/review-drafts/{draft_id}/resolve": {
+      "post": {
+        "tags": [
+          "certification"
+        ],
+        "summary": "Accept or reject a review draft; an explicit human action is required",
+        "operationId": "resolve_review_draft_review_drafts__draft_id__resolve_post",
+        "parameters": [
+          {
+            "name": "draft_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Draft Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewDraftResolveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewDraftOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -2055,6 +3241,299 @@
         ],
         "title": "CalibrationSourceOut"
       },
+      "CertificationDecisionRequest": {
+        "properties": {
+          "decided_by": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Decided By",
+            "default": "maintainer"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CertificationDecisionRequest"
+      },
+      "CertificationOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "cert_code": {
+            "type": "string",
+            "title": "Cert Code"
+          },
+          "hypothesis_id": {
+            "type": "integer",
+            "title": "Hypothesis Id"
+          },
+          "diagnostic_run_id": {
+            "type": "integer",
+            "title": "Diagnostic Run Id"
+          },
+          "parameter_type": {
+            "type": "string",
+            "title": "Parameter Type"
+          },
+          "station_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Station Id"
+          },
+          "boot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Boot Id"
+          },
+          "region_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "decision_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Reason"
+          },
+          "gates": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Gates"
+          },
+          "holdout_comparison": {
+            "type": "object",
+            "title": "Holdout Comparison"
+          },
+          "exclusion_comparison": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exclusion Comparison"
+          },
+          "identifiability": {
+            "type": "object",
+            "title": "Identifiability"
+          },
+          "params": {
+            "type": "object",
+            "title": "Params"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "supersedes_certification_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedes Certification Id"
+          },
+          "decided_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided By"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "cert_code",
+          "hypothesis_id",
+          "diagnostic_run_id",
+          "parameter_type",
+          "station_id",
+          "boot_id",
+          "region_id",
+          "status",
+          "decision_reason",
+          "gates",
+          "holdout_comparison",
+          "exclusion_comparison",
+          "identifiability",
+          "params",
+          "version",
+          "supersedes_certification_id",
+          "decided_by",
+          "created_at",
+          "decided_at"
+        ],
+        "title": "CertificationOut"
+      },
+      "CertifiedParameterOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "certification_id": {
+            "type": "integer",
+            "title": "Certification Id"
+          },
+          "parameter_type": {
+            "type": "string",
+            "title": "Parameter Type"
+          },
+          "station_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Station Id"
+          },
+          "boot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Boot Id"
+          },
+          "region_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region Id"
+          },
+          "params": {
+            "type": "object",
+            "title": "Params"
+          },
+          "identifiability": {
+            "type": "object",
+            "title": "Identifiability"
+          },
+          "affected_event_versions": {
+            "items": {},
+            "type": "array",
+            "title": "Affected Event Versions"
+          },
+          "handoff": {
+            "type": "object",
+            "title": "Handoff"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          },
+          "valid_from": {
+            "type": "string",
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "certification_id",
+          "parameter_type",
+          "station_id",
+          "boot_id",
+          "region_id",
+          "params",
+          "identifiability",
+          "affected_event_versions",
+          "handoff",
+          "active",
+          "valid_from",
+          "valid_to",
+          "version",
+          "created_at"
+        ],
+        "title": "CertifiedParameterOut"
+      },
       "ClassCreate": {
         "properties": {
           "id": {
@@ -2233,6 +3712,411 @@
           "resolution_note"
         ],
         "title": "ConflictOut"
+      },
+      "DiagnosticEvidenceOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "diagnostic_run_id": {
+            "type": "integer",
+            "title": "Diagnostic Run Id"
+          },
+          "station_id": {
+            "type": "string",
+            "title": "Station Id"
+          },
+          "boot_id": {
+            "type": "string",
+            "title": "Boot Id"
+          },
+          "observation_id": {
+            "type": "integer",
+            "title": "Observation Id"
+          },
+          "calibration_source_id": {
+            "type": "string",
+            "title": "Calibration Source Id"
+          },
+          "source_x": {
+            "type": "number",
+            "title": "Source X"
+          },
+          "source_y": {
+            "type": "number",
+            "title": "Source Y"
+          },
+          "station_x": {
+            "type": "number",
+            "title": "Station X"
+          },
+          "station_y": {
+            "type": "number",
+            "title": "Station Y"
+          },
+          "emission": {
+            "type": "string",
+            "title": "Emission"
+          },
+          "distance_m": {
+            "type": "number",
+            "title": "Distance M"
+          },
+          "direction_rad": {
+            "type": "number",
+            "title": "Direction Rad"
+          },
+          "propagation_ms": {
+            "type": "number",
+            "title": "Propagation Ms"
+          },
+          "reference_arrival": {
+            "type": "string",
+            "title": "Reference Arrival"
+          },
+          "local_capture": {
+            "type": "string",
+            "title": "Local Capture"
+          },
+          "detrended_residual_ms": {
+            "type": "number",
+            "title": "Detrended Residual Ms"
+          },
+          "mapping_source": {
+            "type": "string",
+            "title": "Mapping Source"
+          },
+          "partition": {
+            "type": "string",
+            "title": "Partition"
+          },
+          "excluded": {
+            "type": "boolean",
+            "title": "Excluded"
+          },
+          "exclusion_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exclusion Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "diagnostic_run_id",
+          "station_id",
+          "boot_id",
+          "observation_id",
+          "calibration_source_id",
+          "source_x",
+          "source_y",
+          "station_x",
+          "station_y",
+          "emission",
+          "distance_m",
+          "direction_rad",
+          "propagation_ms",
+          "reference_arrival",
+          "local_capture",
+          "detrended_residual_ms",
+          "mapping_source",
+          "partition",
+          "excluded",
+          "exclusion_reason"
+        ],
+        "title": "DiagnosticEvidenceOut"
+      },
+      "DiagnosticRunCreate": {
+        "properties": {
+          "scope_type": {
+            "type": "string",
+            "enum": [
+              "station",
+              "region"
+            ],
+            "title": "Scope Type"
+          },
+          "station_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Station Id"
+          },
+          "region_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region Id"
+          },
+          "organization": {
+            "type": "string",
+            "enum": [
+              "per_station",
+              "regional",
+              "both"
+            ],
+            "title": "Organization",
+            "default": "both"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "scope_type"
+        ],
+        "title": "DiagnosticRunCreate"
+      },
+      "DiagnosticRunOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "batch_id": {
+            "type": "string",
+            "title": "Batch Id"
+          },
+          "scope_type": {
+            "type": "string",
+            "title": "Scope Type"
+          },
+          "station_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Station Id"
+          },
+          "region_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region Id"
+          },
+          "organization": {
+            "type": "string",
+            "title": "Organization"
+          },
+          "cutoff": {
+            "type": "string",
+            "title": "Cutoff"
+          },
+          "baseline_speed_mps": {
+            "type": "number",
+            "title": "Baseline Speed Mps"
+          },
+          "boot_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Boot Ids"
+          },
+          "station_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Station Ids"
+          },
+          "fit_anchor_count": {
+            "type": "integer",
+            "title": "Fit Anchor Count"
+          },
+          "holdout_anchor_count": {
+            "type": "integer",
+            "title": "Holdout Anchor Count"
+          },
+          "excluded_anchor_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Excluded Anchor Ids"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "diagnosis": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diagnosis"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "batch_id",
+          "scope_type",
+          "station_id",
+          "region_id",
+          "organization",
+          "cutoff",
+          "baseline_speed_mps",
+          "boot_ids",
+          "station_ids",
+          "fit_anchor_count",
+          "holdout_anchor_count",
+          "excluded_anchor_ids",
+          "status",
+          "error",
+          "created_by",
+          "created_at",
+          "finished_at"
+        ],
+        "title": "DiagnosticRunOut"
+      },
+      "EventConfirmationCreate": {
+        "properties": {
+          "confirmed_by": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Confirmed By"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "confirmed_by"
+        ],
+        "title": "EventConfirmationCreate"
+      },
+      "EventConfirmationOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "event_id": {
+            "type": "integer",
+            "title": "Event Id"
+          },
+          "confirmed_by": {
+            "type": "string",
+            "title": "Confirmed By"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "event_id",
+          "confirmed_by",
+          "note",
+          "created_at"
+        ],
+        "title": "EventConfirmationOut"
       },
       "EventDetail": {
         "properties": {
@@ -2660,6 +4544,78 @@
         ],
         "title": "EventOut"
       },
+      "EventParameterImpactOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "certification_id": {
+            "type": "integer",
+            "title": "Certification Id"
+          },
+          "event_id": {
+            "type": "integer",
+            "title": "Event Id"
+          },
+          "event_revision": {
+            "type": "integer",
+            "title": "Event Revision"
+          },
+          "event_status_at_impact": {
+            "type": "string",
+            "title": "Event Status At Impact"
+          },
+          "human_confirmed": {
+            "type": "boolean",
+            "title": "Human Confirmed"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "review_draft_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Draft Id"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "certification_id",
+          "event_id",
+          "event_revision",
+          "event_status_at_impact",
+          "human_confirmed",
+          "action",
+          "reason",
+          "review_draft_id",
+          "created_at"
+        ],
+        "title": "EventParameterImpactOut"
+      },
       "ExclusionOut": {
         "properties": {
           "id": {
@@ -2757,6 +4713,158 @@
           "version"
         ],
         "title": "HealthResponse"
+      },
+      "HypothesisOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "diagnostic_run_id": {
+            "type": "integer",
+            "title": "Diagnostic Run Id"
+          },
+          "organization": {
+            "type": "string",
+            "title": "Organization"
+          },
+          "hypothesis_type": {
+            "type": "string",
+            "title": "Hypothesis Type"
+          },
+          "station_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Station Id"
+          },
+          "boot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Boot Id"
+          },
+          "region_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "preference_rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preference Rank"
+          },
+          "preference_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preference Reason"
+          },
+          "identifiable": {
+            "type": "boolean",
+            "title": "Identifiable"
+          },
+          "identifiability": {
+            "type": "object",
+            "title": "Identifiability"
+          },
+          "params": {
+            "type": "object",
+            "title": "Params"
+          },
+          "fit_metrics": {
+            "type": "object",
+            "title": "Fit Metrics"
+          },
+          "holdout_metrics": {
+            "type": "object",
+            "title": "Holdout Metrics"
+          },
+          "direction_analysis": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direction Analysis"
+          },
+          "calibration_version_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calibration Version Hash"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "diagnostic_run_id",
+          "organization",
+          "hypothesis_type",
+          "station_id",
+          "boot_id",
+          "region_id",
+          "status",
+          "preference_rank",
+          "preference_reason",
+          "identifiable",
+          "identifiability",
+          "params",
+          "fit_metrics",
+          "holdout_metrics",
+          "direction_analysis",
+          "calibration_version_hash",
+          "created_at"
+        ],
+        "title": "HypothesisOut"
       },
       "IngestionCounts": {
         "properties": {
@@ -3145,6 +5253,133 @@
         ],
         "title": "ProgressUpload"
       },
+      "PropagationRegionCreate": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_.-]+$",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "x_min": {
+            "type": "number",
+            "title": "X Min"
+          },
+          "x_max": {
+            "type": "number",
+            "title": "X Max"
+          },
+          "y_min": {
+            "type": "number",
+            "title": "Y Min"
+          },
+          "y_max": {
+            "type": "number",
+            "title": "Y Max"
+          },
+          "baseline_speed_mps": {
+            "type": "number",
+            "maximum": 2000.0,
+            "exclusiveMinimum": 50.0,
+            "title": "Baseline Speed Mps"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "x_min",
+          "x_max",
+          "y_min",
+          "y_max",
+          "baseline_speed_mps"
+        ],
+        "title": "PropagationRegionCreate"
+      },
+      "PropagationRegionOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "x_min": {
+            "type": "number",
+            "title": "X Min"
+          },
+          "x_max": {
+            "type": "number",
+            "title": "X Max"
+          },
+          "y_min": {
+            "type": "number",
+            "title": "Y Min"
+          },
+          "y_max": {
+            "type": "number",
+            "title": "Y Max"
+          },
+          "baseline_speed_mps": {
+            "type": "number",
+            "title": "Baseline Speed Mps"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "x_min",
+          "x_max",
+          "y_min",
+          "y_max",
+          "baseline_speed_mps",
+          "active",
+          "notes",
+          "created_at"
+        ],
+        "title": "PropagationRegionOut"
+      },
       "RegionOut": {
         "properties": {
           "region_id": {
@@ -3192,6 +5427,130 @@
           "representative"
         ],
         "title": "RegionOut"
+      },
+      "ReviewDraftOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "certification_id": {
+            "type": "integer",
+            "title": "Certification Id"
+          },
+          "source_event_id": {
+            "type": "integer",
+            "title": "Source Event Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "params_snapshot": {
+            "type": "object",
+            "title": "Params Snapshot"
+          },
+          "before": {
+            "type": "object",
+            "title": "Before"
+          },
+          "after": {
+            "type": "object",
+            "title": "After"
+          },
+          "delta": {
+            "type": "object",
+            "title": "Delta"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "resolved": {
+            "type": "boolean",
+            "title": "Resolved"
+          },
+          "resolution_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Note"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "certification_id",
+          "source_event_id",
+          "status",
+          "params_snapshot",
+          "before",
+          "after",
+          "delta",
+          "reason",
+          "resolved",
+          "resolution_note",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ReviewDraftOut"
+      },
+      "ReviewDraftResolveRequest": {
+        "properties": {
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "accepted",
+              "rejected"
+            ],
+            "title": "Resolution"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "resolved_by": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Resolved By",
+            "default": "investigator"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "resolution"
+        ],
+        "title": "ReviewDraftResolveRequest"
       },
       "RunOption": {
         "properties": {

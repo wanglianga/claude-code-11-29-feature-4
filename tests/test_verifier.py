@@ -122,3 +122,60 @@ def test_forward_model_is_independent_of_service_code():
     source = (Path(verify_module.__file__)).read_text()
     for forbidden in ("from app", "import app"):
         assert forbidden not in source
+
+
+def _setup_fault_scenario(client, scenario: str, tmp_path):
+    """Load a fault scenario, run the pipeline and the required diagnostics."""
+    load_scenario(scenario, "http://testserver", truth_dir=tmp_path)
+    _run(client)
+    region = client.post(
+        "/propagation-regions",
+        json={
+            "id": "R1", "name": "north",
+            "x_min": -400, "x_max": 2300, "y_min": -700, "y_max": 1500,
+            "baseline_speed_mps": 343.0,
+        },
+    )
+    assert region.status_code == 201, region.text
+    for station in ("S1", "S2", "S3", "S4"):
+        r = client.post(
+            "/diagnostic-runs",
+            json={"scope_type": "station", "station_id": station},
+        )
+        assert r.status_code == 201, r.text
+    r = client.post(
+        "/diagnostic-runs", json={"scope_type": "region", "region_id": "R1"}
+    )
+    assert r.status_code == 201, r.text
+
+
+def test_verifier_diagnosis_attribution(client, api, tmp_path):
+    _setup_fault_scenario(client, "diagnosis", tmp_path)
+    truth = tmp_path / "truth.json"
+    original = verify_module.requests
+    verify_module.requests = _ClientShim(client)
+    try:
+        code = verify_module.run_checks(
+            "diagnosis", truth, "http://testserver", "test-key", False, False
+        )
+        result = json.loads((truth.parent / "verification.json").read_text())
+    finally:
+        verify_module.requests = original
+        (truth.parent / "verification.json").unlink(missing_ok=True)
+    assert code == 0, [c for c in result["checks"] if not c["ok"]]
+
+
+def test_verifier_sparse_anchors_block_certification(client, api, tmp_path):
+    _setup_fault_scenario(client, "sparse_anchors", tmp_path)
+    truth = tmp_path / "truth.json"
+    original = verify_module.requests
+    verify_module.requests = _ClientShim(client)
+    try:
+        code = verify_module.run_checks(
+            "sparse_anchors", truth, "http://testserver", "test-key", False, False
+        )
+        result = json.loads((truth.parent / "verification.json").read_text())
+    finally:
+        verify_module.requests = original
+        (truth.parent / "verification.json").unlink(missing_ok=True)
+    assert code == 0, [c for c in result["checks"] if not c["ok"]]

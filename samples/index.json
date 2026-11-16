@@ -33,5 +33,19 @@
     "truth_events": 5,
     "waves": 7,
     "records": 340
+  },
+  "diagnosis": {
+    "title": "Clock offset, mis-recorded coordinate and regional speed change",
+    "stations": 4,
+    "truth_events": 6,
+    "waves": 8,
+    "records": 504
+  },
+  "sparse_anchors": {
+    "title": "Anchor density too low for any certifiable hypothesis",
+    "stations": 4,
+    "truth_events": 2,
+    "waves": 8,
+    "records": 24
   }
 }

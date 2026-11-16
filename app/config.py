@@ -95,6 +95,31 @@ class Settings:
     # Processing
     max_run_observations: int = _env_int("MAX_RUN_OBSERVATIONS", 20000)
 
+    # Hypothesis diagnostics (calibration fault attribution)
+    diag_holdout_fraction: float = _env_float("DIAG_HOLDOUT_FRACTION", 0.25)
+    diag_min_holdout: int = _env_int("DIAG_MIN_HOLDOUT", 2)
+    diag_min_fit_anchors: int = _env_int("DIAG_MIN_FIT_ANCHORS", 4)
+    diag_min_anchor_span_s: float = _env_float("DIAG_MIN_ANCHOR_SPAN_S", 60.0)
+    diag_direction_sectors: int = _env_int("DIAG_DIRECTION_SECTORS", 8)
+    diag_min_directions: int = _env_int("DIAG_MIN_DIRECTIONS", 3)
+    diag_same_sign_fraction: float = _env_float("DIAG_SAME_SIGN_FRACTION", 0.75)
+    diag_reversal_ratio: float = _env_float("DIAG_REVERSAL_RATIO", 0.6)
+    diag_distance_correlation: float = _env_float("DIAG_DISTANCE_CORRELATION", 0.7)
+    diag_outlier_sigma: float = _env_float("DIAG_OUTLIER_SIGMA", 3.5)
+    diag_min_step_ms: float = _env_float("DIAG_MIN_STEP_MS", 30.0)
+    diag_step_min_gain: float = _env_float("DIAG_STEP_MIN_GAIN", 0.12)
+    diag_holdout_improvement_ratio: float = _env_float("DIAG_HOLDOUT_IMPROVEMENT_RATIO", 0.1)
+    diag_max_coord_shift_m: float = _env_float("DIAG_MAX_COORD_SHIFT_M", 500.0)
+    diag_speed_min_mps: float = _env_float("DIAG_SPEED_MIN_MPS", 300.0)
+    diag_speed_max_mps: float = _env_float("DIAG_SPEED_MAX_MPS", 400.0)
+    diag_min_distance_spread_m: float = _env_float("DIAG_MIN_DISTANCE_SPREAD_M", 200.0)
+    diag_max_design_condition: float = _env_float("DIAG_MAX_DESIGN_CONDITION", 50.0)
+    diag_holdout_abs_limit_ms: float = _env_float("DIAG_HOLDOUT_ABS_LIMIT_MS", 150.0)
+
+    # Certification book
+    cert_holdout_worsen_ratio: float = _env_float("CERT_HOLDOUT_WORSEN_RATIO", 1.15)
+    cert_stale_max_age_s: float = _env_float("CERT_STALE_MAX_AGE_S", 2592000.0)
+
     def as_dict(self) -> dict:
         data = asdict(self)
         data["samples_dir"] = str(self.samples_dir)
